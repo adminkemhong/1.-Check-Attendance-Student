@@ -1,6 +1,25 @@
-// --- Global Variables & State ---
-let students = JSON.parse(localStorage.getItem('attendanceApp_students')) || [];
-let attendanceRecords = JSON.parse(localStorage.getItem('attendanceApp_records')) || {};
+// ==========================================================
+// ⚠️ សំខាន់ (IMPORTANT): លោកអ្នកត្រូវដាក់ Firebase Config នៅទីនេះ
+// ==========================================================
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const database = firebase.database();
+
+// Global State
+let students = [];
+let attendanceRecords = {};
 
 // DOM Elements
 const dateDisplay = document.getElementById('current-date');
@@ -17,15 +36,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set Default Date in Attendance Tab
     attendanceDateInput.value = today.toISOString().split('T')[0];
     
-    // Setup Navigation
     setupNavigation();
-    
-    // Render Dashboard
-    updateDashboard();
-    
-    // Render Initial Tables
-    renderStudentsTable();
+    fetchDataFromFirebase(); // New function to listen to DB
 });
+
+// --- Firebase Data Fetching ---
+function fetchDataFromFirebase() {
+    // Listen for Students
+    database.ref('students').on('value', (snapshot) => {
+        const data = snapshot.val();
+        students = data ? Object.values(data) : [];
+        renderStudentsTable();
+        renderAttendanceTable(); // re-render if we are on attendance tab
+        updateDashboard();
+    });
+
+    // Listen for Attendance Records
+    database.ref('attendance').on('value', (snapshot) => {
+        attendanceRecords = snapshot.val() || {};
+        renderAttendanceTable();
+        updateDashboard();
+    });
+}
 
 // --- Navigation Logic ---
 function setupNavigation() {
@@ -35,22 +67,13 @@ function setupNavigation() {
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            // Remove Active Classes
             navLinks.forEach(nav => nav.classList.remove('active'));
             tabContents.forEach(tab => tab.classList.remove('active'));
 
-            // Add Active Class
             link.classList.add('active');
             const targetId = link.getAttribute('data-tab');
             document.getElementById(targetId).classList.add('active');
-            
-            // Update Title
             pageTitle.textContent = link.querySelector('span').textContent;
-
-            // Specific Tab Actions
-            if(targetId === 'dashboard') updateDashboard();
-            if(targetId === 'students') renderStudentsTable();
-            if(targetId === 'attendance') renderAttendanceTable();
         });
     });
 }
@@ -92,7 +115,6 @@ function openStudentModal(id = null) {
         studentForm.reset();
         document.getElementById('student-id').value = '';
     }
-    
     studentModal.classList.add('active');
 }
 
@@ -106,33 +128,21 @@ studentForm.addEventListener('submit', (e) => {
     const nameInput = document.getElementById('student-name').value;
     const genderInput = document.getElementById('student-gender').value;
 
-    if(idInput) {
-        // Edit
-        const index = students.findIndex(s => s.id === idInput);
-        if(index > -1) {
-            students[index].name = nameInput;
-            students[index].gender = genderInput;
-        }
-    } else {
-        // Add
-        const newStudent = {
-            id: 'STU-' + Date.now().toString().slice(-6),
-            name: nameInput,
-            gender: genderInput
-        };
-        students.push(newStudent);
-    }
+    let studentObj = {
+        id: idInput || ('STU-' + Date.now().toString().slice(-6)),
+        name: nameInput,
+        gender: genderInput
+    };
 
-    saveStudents();
-    renderStudentsTable();
-    closeStudentModal();
+    // Save to Firebase
+    database.ref('students/' + studentObj.id).set(studentObj)
+        .then(() => closeStudentModal())
+        .catch(err => alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!'));
 });
 
 function deleteStudent(id) {
     if(confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យសិស្សនេះមែនទេ?')) {
-        students = students.filter(s => s.id !== id);
-        saveStudents();
-        renderStudentsTable();
+        database.ref('students/' + id).remove();
     }
 }
 
@@ -145,7 +155,7 @@ function renderStudentsTable() {
         return;
     }
 
-    students.forEach((student, index) => {
+    students.forEach((student) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${student.id}</td>
@@ -160,12 +170,7 @@ function renderStudentsTable() {
     });
 }
 
-function saveStudents() {
-    localStorage.setItem('attendanceApp_students', JSON.stringify(students));
-}
-
 // --- Attendance Logic ---
-// Listen to date change
 attendanceDateInput.addEventListener('change', renderAttendanceTable);
 
 function renderAttendanceTable() {
@@ -181,7 +186,7 @@ function renderAttendanceTable() {
     const currentRecords = attendanceRecords[selectedDate] || {};
 
     students.forEach(student => {
-        const status = currentRecords[student.id] || 'present'; // default present
+        const status = currentRecords[student.id] || 'present';
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -231,8 +236,44 @@ function saveAttendance() {
         }
     });
     
-    attendanceRecords[selectedDate] = currentRecords;
-    localStorage.setItem('attendanceApp_records', JSON.stringify(attendanceRecords));
+    // Save to Firebase
+    database.ref('attendance/' + selectedDate).set(currentRecords)
+        .then(() => alert("ទិន្នន័យវត្តមានត្រូវបានរក្សាទុកជោគជ័យ!"))
+        .catch(err => alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!"));
+}
+
+// --- QR Code Logic ---
+const qrModal = document.getElementById('qr-modal');
+let qrcode = null;
+
+function generateQR() {
+    const selectedDate = attendanceDateInput.value;
+    if(!selectedDate) {
+        alert("សូមជ្រើសរើសកាលបរិច្ឆេទមុននឹងបង្កើត QR Code!");
+        return;
+    }
+
+    // Generate link based on current domain, pointing to scan.html
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+    const scanUrl = `${baseUrl}/scan.html?date=${selectedDate}`;
     
-    alert("ទិន្នន័យវត្តមានត្រូវបានរក្សាទុកជោគជ័យ! (Saved Successfully)");
+    const qrContainer = document.getElementById('qrcode');
+    qrContainer.innerHTML = ''; // clear previous
+    
+    // Create new QR Code
+    qrcode = new QRCode(qrContainer, {
+        text: scanUrl,
+        width: 200,
+        height: 200,
+        colorDark : "#4f46e5",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+
+    document.getElementById('qr-link').textContent = scanUrl;
+    qrModal.classList.add('active');
+}
+
+function closeQRModal() {
+    qrModal.classList.remove('active');
 }

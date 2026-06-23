@@ -8,6 +8,12 @@
     <!-- Boxicons for Modern Icons -->
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css2?family=Hanuman:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat version for Vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -101,6 +107,9 @@
                     <h2>ស្រង់វត្តមាន</h2>
                     <div class="attendance-controls">
                         <input type="date" id="attendance-date" class="form-control">
+                        <button class="btn btn-secondary" onclick="generateQR()">
+                            <i class='bx bx-qr-scan'></i> បង្ហាញ QR ឱ្យសិស្សស្កេន
+                        </button>
                         <button class="btn btn-primary" onclick="saveAttendance()">
                             <i class='bx bx-save'></i> រក្សាទុក
                         </button>
@@ -151,6 +160,19 @@
                     <button type="submit" class="btn btn-primary">រក្សាទុក</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qr-modal" class="modal">
+        <div class="modal-content glass-panel" style="text-align: center; max-width: 400px;">
+            <div class="modal-header">
+                <h2>ស្កេនដើម្បីចុចវត្តមាន</h2>
+                <button class="close-btn" onclick="closeQRModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-secondary);">សូមឱ្យសិស្សយកទូរស័ព្ទមកស្កេន QR Code នេះ ដើម្បីបើកផ្ទាំងចុចវត្តមានដោយខ្លួនឯងសម្រាប់ថ្ងៃនេះ។</p>
+            <div id="qrcode" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>
+            <p id="qr-link" style="word-break: break-all; font-size: 0.9rem; color: var(--primary-color);"></p>
         </div>
     </div>
 

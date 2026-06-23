@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ចុចវត្តមាន (Student Attendance)</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Hanuman:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        body { padding: 0; align-items: flex-start; }
+        .scan-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .date-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .success-animation {
+            font-size: 5rem;
+            color: var(--secondary-color);
+            margin: 20px 0;
+            display: none;
+            animation: zoomIn 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-container glass-panel">
+        <div class="logo" style="justify-content: center;">
+            <i class='bx bxs-graduation'></i>
+            <h2>សិស្ស-App</h2>
+        </div>
+        
+        <div id="date-display" class="date-badge">កំពុងផ្ទុក...</div>
+        
+        <div id="form-section">
+            <h3 style="margin-bottom: 15px;">សូមជ្រើសរើសឈ្មោះរបស់អ្នក</h3>
+            
+            <div class="form-group" style="text-align: left;">
+                <label>ឈ្មោះសិស្ស៖</label>
+                <select id="student-select" class="form-control" required>
+                    <option value="">-- ជ្រើសរើសឈ្មោះ --</option>
+                    <!-- Options populated from Firebase -->
+                </select>
+            </div>
+            
+            <button id="submit-btn" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 20px; font-size: 1.1rem; padding: 15px;" onclick="submitAttendance()">
+                <i class='bx bx-check-circle'></i> ខ្ញុំមានវត្តមានថ្ងៃនេះ!
+            </button>
+        </div>
+
+        <div id="success-section" style="display: none;">
+            <i class='bx bxs-check-circle success-animation' id="success-icon"></i>
+            <h3 style="color: var(--secondary-color);">បានចុចវត្តមានជោគជ័យ!</h3>
+            <p style="margin-top: 10px; color: var(--text-secondary);">អ្នកអាចបិទផ្ទាំងនេះបានហើយ។ អរគុណ!</p>
+        </div>
+    </div>
+
+    <script src="scan.js"></script>
+</body>
+</html>
