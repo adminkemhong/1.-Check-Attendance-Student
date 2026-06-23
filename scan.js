@@ -2,13 +2,14 @@
 // ⚠️ សំខាន់ (IMPORTANT): លោកអ្នកត្រូវដាក់ Firebase Config នៅទីនេះ
 // ==========================================================
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDtekeiTTmcXwLWbljR7xEJewY6mOIm4uY",
+  authDomain: "check-attendance-student.firebaseapp.com",
+  databaseURL: "https://check-attendance-student-default-rtdb.firebaseio.com",
+  projectId: "check-attendance-student",
+  storageBucket: "check-attendance-student.firebasestorage.app",
+  messagingSenderId: "555095566724",
+  appId: "1:555095566724:web:88dbde996a8bb64f8ed5d1",
+  measurementId: "G-CYPCDGTTW4"
 };
 
 // Initialize Firebase
