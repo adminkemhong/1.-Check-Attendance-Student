@@ -221,7 +221,10 @@ function processExcelData(rows) {
     if (count > 0) {
         // Save batch to Firebase
         database.ref('students').update(newStudentsObj)
-            .then(() => alert(`បានបញ្ចូលសិស្សចំនួន ${count} នាក់ដោយជោគជ័យពី File!`))
+            .then(() => {
+                alert(`បានបញ្ចូលសិស្សចំនួន ${count} នាក់ដោយជោគជ័យពី File!`);
+                closeStudentModal();
+            })
             .catch(err => alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!"));
     } else {
         alert("មិនមានទិន្នន័យត្រឹមត្រូវទេ។ សូមប្រាកដថាជួរទី១ជា 'ឈ្មោះ' និងជួរទី២ជា 'ភេទ'។");

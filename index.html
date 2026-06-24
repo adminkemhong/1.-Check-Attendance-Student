@@ -82,15 +82,9 @@
             <section id="students" class="tab-content glass-panel">
                 <div class="section-header">
                     <h2>បញ្ជីឈ្មោះសិស្ស</h2>
-                    <div>
-                        <input type="file" id="excel-upload" accept=".csv, .xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
-                        <button class="btn btn-secondary" style="margin-right: 10px;" onclick="document.getElementById('excel-upload').click()">
-                            <i class='bx bx-upload'></i> ទាញយកពី Excel
-                        </button>
-                        <button class="btn btn-primary" onclick="openStudentModal()">
-                            <i class='bx bx-plus'></i> បន្ថែមសិស្ស
-                        </button>
-                    </div>
+                    <button class="btn btn-primary" onclick="openStudentModal()">
+                        <i class='bx bx-plus'></i> បន្ថែមសិស្ស
+                    </button>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -151,6 +145,21 @@
                 <button class="close-btn" onclick="closeStudentModal()"><i class='bx bx-x'></i></button>
             </div>
             <form id="student-form">
+                <div id="excel-upload-section" style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px dashed rgba(79, 70, 229, 0.3);">
+                    <p style="font-size: 0.95rem; margin-bottom: 12px; color: var(--primary-color); font-weight: bold;"><i class='bx bx-file'></i> បញ្ចូលសិស្សច្រើនតាម Excel</p>
+                    <input type="file" id="excel-upload" accept=".csv, .xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+                    <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center; background: white; border: 1px solid var(--primary-color); color: var(--primary-color); font-weight: 500;" onclick="document.getElementById('excel-upload').click()">
+                        <i class='bx bx-upload'></i> ជ្រើសរើស File Excel
+                    </button>
+                    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 10px;">ទម្រង់៖ ជួរទី១=ឈ្មោះ, ជួរទី២=ភេទ (.xlsx, .csv)</p>
+                </div>
+                
+                <div id="divider-section" style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="flex-grow: 1; border-top: 1px solid #e5e7eb;"></div>
+                    <span style="margin: 0 10px; color: #9ca3af; font-size: 0.85rem; font-weight: bold;">ឬ បញ្ចូលម្នាក់ម្តង</span>
+                    <div style="flex-grow: 1; border-top: 1px solid #e5e7eb;"></div>
+                </div>
+
                 <input type="hidden" id="student-id">
                 <div class="form-group">
                     <label>ឈ្មោះ</label>
