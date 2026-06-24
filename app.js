@@ -116,6 +116,11 @@ studentForm.addEventListener('submit', (e) => {
     const nameInput = document.getElementById('student-name').value;
     const genderInput = document.getElementById('student-gender').value;
 
+    if (!nameInput.trim()) {
+        alert("សូមបញ្ចូលឈ្មោះសិស្ស!");
+        return;
+    }
+
     let studentObj = {
         id: idInput || ('STU-' + Date.now().toString().slice(-6)),
         name: nameInput,
@@ -259,7 +264,11 @@ function processExcelData(rows) {
 
     if (count > 0) {
         document.getElementById('student-table-body').innerHTML = '<tr><td colspan="4" style="text-align: center;">កំពុងរក្សាទុកពី Excel...</td></tr>';
-        
+        const excelBtn = document.querySelector('#excel-upload-section button');
+        const originalText = excelBtn.innerHTML;
+        excelBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> កំពុងបញ្ចូល...";
+        excelBtn.disabled = true;
+
         fetch(WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -270,6 +279,8 @@ function processExcelData(rows) {
         })
         .then(res => res.json())
         .then(res => {
+            excelBtn.innerHTML = originalText;
+            excelBtn.disabled = false;
             if(res.status === 'success') {
                 alert(`បានបញ្ចូលសិស្សចំនួន ${count} នាក់ដោយជោគជ័យពី File!`);
                 closeStudentModal();
@@ -279,6 +290,8 @@ function processExcelData(rows) {
                 fetchDataFromSheets();
             }
         }).catch(err => {
+            excelBtn.innerHTML = originalText;
+            excelBtn.disabled = false;
             alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Google Sheets!");
             fetchDataFromSheets();
         });
