@@ -1,22 +1,7 @@
 // ==========================================================
-// ⚠️ សំខាន់ (IMPORTANT): លោកអ្នកត្រូវដាក់ Firebase Config នៅទីនេះ
+// ⚠️ Google Sheets Configuration
 // ==========================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyDtekeiTTmcXwLWbljR7xEJewY6mOIm4uY",
-  authDomain: "check-attendance-student.firebaseapp.com",
-  databaseURL: "https://check-attendance-student-default-rtdb.firebaseio.com",
-  projectId: "check-attendance-student",
-  storageBucket: "check-attendance-student.firebasestorage.app",
-  messagingSenderId: "555095566724",
-  appId: "1:555095566724:web:88dbde996a8bb64f8ed5d1",
-  measurementId: "G-CYPCDGTTW4"
-};
-
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const database = firebase.database();
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw0WCFqJtUNjoHAUSHRuhm2FBKIKzN0sdGQV6jOdKs/exec";
 
 // Global State
 let students = [];
@@ -38,26 +23,28 @@ document.addEventListener('DOMContentLoaded', () => {
     attendanceDateInput.value = today.toISOString().split('T')[0];
     
     setupNavigation();
-    fetchDataFromFirebase(); // New function to listen to DB
+    fetchDataFromSheets(); 
 });
 
-// --- Firebase Data Fetching ---
-function fetchDataFromFirebase() {
-    // Listen for Students
-    database.ref('students').on('value', (snapshot) => {
-        const data = snapshot.val();
-        students = data ? Object.values(data) : [];
-        renderStudentsTable();
-        renderAttendanceTable(); // re-render if we are on attendance tab
-        updateDashboard();
-    });
-
-    // Listen for Attendance Records
-    database.ref('attendance').on('value', (snapshot) => {
-        attendanceRecords = snapshot.val() || {};
-        renderAttendanceTable();
-        updateDashboard();
-    });
+// --- Fetch Data ---
+function fetchDataFromSheets() {
+    document.getElementById('student-table-body').innerHTML = '<tr><td colspan="4" style="text-align: center;">កំពុងទាញយកទិន្នន័យ...</td></tr>';
+    
+    fetch(WEB_APP_URL)
+        .then(res => res.json())
+        .then(data => {
+            const studs = data.students || {};
+            students = Object.values(studs);
+            attendanceRecords = data.attendance || {};
+            
+            renderStudentsTable();
+            renderAttendanceTable();
+            updateDashboard();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("មានបញ្ហាក្នុងការទាញយកទិន្នន័យពី Google Sheets!");
+        });
 }
 
 // --- Navigation Logic ---
@@ -135,15 +122,65 @@ studentForm.addEventListener('submit', (e) => {
         gender: genderInput
     };
 
-    // Save to Firebase
-    database.ref('students/' + studentObj.id).set(studentObj)
-        .then(() => closeStudentModal())
-        .catch(err => alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!'));
+    // Prepare all students object
+    const objToSave = {};
+    students.forEach(s => { objToSave[s.id] = s; });
+    objToSave[studentObj.id] = studentObj; // Add or update
+
+    // Save to Google Sheets
+    const submitBtn = studentForm.querySelector('button[type="submit"]');
+    submitBtn.textContent = "កំពុងរក្សាទុក...";
+    submitBtn.disabled = true;
+
+    fetch(WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+            action: "updateStudents",
+            students: objToSave
+        })
+    })
+    .then(res => res.json())
+    .then(res => {
+        submitBtn.textContent = "រក្សាទុក";
+        submitBtn.disabled = false;
+        if(res.status === 'success') {
+            closeStudentModal();
+            fetchDataFromSheets();
+        } else {
+            alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!');
+        }
+    })
+    .catch(err => {
+        submitBtn.textContent = "រក្សាទុក";
+        submitBtn.disabled = false;
+        alert('មានបញ្ហាក្នុងការភ្ជាប់ទៅ Google Sheets!');
+    });
 });
 
 function deleteStudent(id) {
     if(confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យសិស្សនេះមែនទេ?')) {
-        database.ref('students/' + id).remove();
+        const objToSave = {};
+        students.forEach(s => { 
+            if(s.id !== id) {
+                objToSave[s.id] = s; 
+            }
+        });
+        
+        document.getElementById('student-table-body').innerHTML = '<tr><td colspan="4" style="text-align: center;">កំពុងលុប...</td></tr>';
+        
+        fetch(WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "updateStudents",
+                students: objToSave
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') fetchDataFromSheets();
+        });
     }
 }
 
@@ -201,7 +238,9 @@ function handleExcelUpload(event) {
 }
 
 function processExcelData(rows) {
-    const newStudentsObj = {};
+    const objToSave = {};
+    students.forEach(s => { objToSave[s.id] = s; }); // Keep existing
+
     let count = 0;
     
     rows.forEach(row => {
@@ -212,20 +251,37 @@ function processExcelData(rows) {
             // Skip header row
             if (name && gender && name !== 'ឈ្មោះ' && name !== 'Name' && name !== 'ឈ្មោះសិស្ស') {
                 const id = 'STU-' + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 4);
-                newStudentsObj[id] = { id, name, gender };
+                objToSave[id] = { id, name, gender };
                 count++;
             }
         }
     });
 
     if (count > 0) {
-        // Save batch to Firebase
-        database.ref('students').update(newStudentsObj)
-            .then(() => {
+        document.getElementById('student-table-body').innerHTML = '<tr><td colspan="4" style="text-align: center;">កំពុងរក្សាទុកពី Excel...</td></tr>';
+        
+        fetch(WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "updateStudents",
+                students: objToSave
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') {
                 alert(`បានបញ្ចូលសិស្សចំនួន ${count} នាក់ដោយជោគជ័យពី File!`);
                 closeStudentModal();
-            })
-            .catch(err => alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!"));
+                fetchDataFromSheets();
+            } else {
+                alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!");
+                fetchDataFromSheets();
+            }
+        }).catch(err => {
+            alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Google Sheets!");
+            fetchDataFromSheets();
+        });
     } else {
         alert("មិនមានទិន្នន័យត្រឹមត្រូវទេ។ សូមប្រាកដថាជួរទី១ជា 'ឈ្មោះ' និងជួរទី២ជា 'ភេទ'។");
     }
@@ -297,10 +353,34 @@ function saveAttendance() {
         }
     });
     
-    // Save to Firebase
-    database.ref('attendance/' + selectedDate).set(currentRecords)
-        .then(() => alert("ទិន្នន័យវត្តមានត្រូវបានរក្សាទុកជោគជ័យ!"))
-        .catch(err => alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!"));
+    const btn = document.querySelector('button[onclick="saveAttendance()"]');
+    btn.textContent = "កំពុងរក្សាទុក...";
+    btn.disabled = true;
+
+    fetch(WEB_APP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+            action: "updateAttendance",
+            date: selectedDate,
+            records: currentRecords
+        })
+    })
+    .then(res => res.json())
+    .then(res => {
+        btn.innerHTML = "<i class='bx bx-save'></i> រក្សាទុកវត្តមាន";
+        btn.disabled = false;
+        if(res.status === 'success') {
+            alert("ទិន្នន័យវត្តមានត្រូវបានរក្សាទុកជោគជ័យ!");
+            fetchDataFromSheets();
+        } else {
+            alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!");
+        }
+    }).catch(err => {
+        btn.innerHTML = "<i class='bx bx-save'></i> រក្សាទុកវត្តមាន";
+        btn.disabled = false;
+        alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Google Sheets!");
+    });
 }
 
 // --- QR Code Logic ---
