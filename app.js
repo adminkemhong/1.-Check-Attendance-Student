@@ -171,6 +171,63 @@ function renderStudentsTable() {
     });
 }
 
+// --- Excel Import Logic ---
+function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+
+    if (fileExt === 'csv') {
+        reader.onload = (evt) => {
+            const json = evt.target.result.split('\n').map(row => row.split(','));
+            processExcelData(json);
+        };
+        reader.readAsText(file);
+    } else if (fileExt === 'xlsx' || fileExt === 'xls') {
+        reader.onload = (evt) => {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = window.XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = window.XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+            processExcelData(json);
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        alert("សូមជ្រើសរើស File ជាប្រភេទ .xlsx, .xls ឬ .csv");
+    }
+    event.target.value = ''; // Reset input
+}
+
+function processExcelData(rows) {
+    const newStudentsObj = {};
+    let count = 0;
+    
+    rows.forEach(row => {
+        if (row.length >= 2) {
+            const name = String(row[0]).trim();
+            const gender = String(row[1]).trim();
+            
+            // Skip header row
+            if (name && gender && name !== 'ឈ្មោះ' && name !== 'Name' && name !== 'ឈ្មោះសិស្ស') {
+                const id = 'STU-' + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 4);
+                newStudentsObj[id] = { id, name, gender };
+                count++;
+            }
+        }
+    });
+
+    if (count > 0) {
+        // Save batch to Firebase
+        database.ref('students').update(newStudentsObj)
+            .then(() => alert(`បានបញ្ចូលសិស្សចំនួន ${count} នាក់ដោយជោគជ័យពី File!`))
+            .catch(err => alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!"));
+    } else {
+        alert("មិនមានទិន្នន័យត្រឹមត្រូវទេ។ សូមប្រាកដថាជួរទី១ជា 'ឈ្មោះ' និងជួរទី២ជា 'ភេទ'។");
+    }
+}
+
 // --- Attendance Logic ---
 attendanceDateInput.addEventListener('change', renderAttendanceTable);
 

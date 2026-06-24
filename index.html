@@ -14,6 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <!-- QRCode.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- SheetJS for Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -80,9 +82,15 @@
             <section id="students" class="tab-content glass-panel">
                 <div class="section-header">
                     <h2>បញ្ជីឈ្មោះសិស្ស</h2>
-                    <button class="btn btn-primary" onclick="openStudentModal()">
-                        <i class='bx bx-plus'></i> បន្ថែមសិស្ស
-                    </button>
+                    <div>
+                        <input type="file" id="excel-upload" accept=".csv, .xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+                        <button class="btn btn-secondary" style="margin-right: 10px;" onclick="document.getElementById('excel-upload').click()">
+                            <i class='bx bx-upload'></i> ទាញយកពី Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="openStudentModal()">
+                            <i class='bx bx-plus'></i> បន្ថែមសិស្ស
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
