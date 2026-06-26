@@ -1,11 +1,12 @@
 // ==========================================================
 // ⚠️ Google Sheets Configuration
 // ==========================================================
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw0WCFqJtUNjoHAUSHRuhm2FBKIKzN0sdGQV6jOdKs/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbywtsEiPsC_nNEbtfvSa_gBL7yoIU09-RDYrO-t-nOKhkW3xijbi3fuVu34XrBcuX-m/exec";
 
 // Get Date from URL or use today's date
 const urlParams = new URLSearchParams(window.location.search);
 let targetDate = urlParams.get('date');
+let targetClassId = urlParams.get('classId');
 
 if (!targetDate) {
     // Fallback to today if no date in URL
@@ -25,8 +26,12 @@ fetch(WEB_APP_URL)
 .then(data => {
     studentSelect.innerHTML = '<option value="">-- សូមជ្រើសរើសឈ្មោះរបស់អ្នក --</option>';
     const studentsData = data.students || {};
-    const studentsList = Object.values(studentsData);
+    let studentsList = Object.values(studentsData);
     
+    if (targetClassId) {
+        studentsList = studentsList.filter(s => s.classId === targetClassId);
+    }
+
     if (studentsList.length > 0) {
         // Sort by name
         studentsList.sort((a, b) => a.name.localeCompare(b.name));

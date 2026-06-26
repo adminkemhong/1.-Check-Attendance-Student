@@ -28,6 +28,10 @@
                     <i class='bx bx-grid-alt'></i>
                     <span>ទំព័រដើម</span>
                 </a>
+                <a href="#" class="nav-link" data-tab="classes">
+                    <i class='bx bx-building-house'></i>
+                    <span>ថ្នាក់រៀន</span>
+                </a>
                 <a href="#" class="nav-link" data-tab="students">
                     <i class='bx bx-user-pin'></i>
                     <span>បញ្ជីសិស្ស</span>
@@ -76,13 +80,42 @@
                 </div>
             </section>
 
+            <!-- Classes Tab -->
+            <section id="classes" class="tab-content glass-panel">
+                <div class="section-header">
+                    <h2>បញ្ជីថ្នាក់រៀន</h2>
+                    <button class="btn btn-primary" onclick="openClassModal()">
+                        <i class='bx bx-plus'></i> បន្ថែមថ្នាក់រៀន
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>អត្តលេខ</th>
+                                <th>ឈ្មោះថ្នាក់រៀន</th>
+                                <th>សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody id="class-table-body">
+                            <!-- Classes injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Students Tab -->
             <section id="students" class="tab-content glass-panel">
                 <div class="section-header">
                     <h2>បញ្ជីឈ្មោះសិស្ស</h2>
-                    <button class="btn btn-primary" onclick="openStudentModal()">
-                        <i class='bx bx-plus'></i> បន្ថែមសិស្ស
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="filter-class-students" class="form-control" onchange="filterStudents()">
+                            <option value="">គ្រប់ថ្នាក់ទាំងអស់</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openStudentModal()">
+                            <i class='bx bx-plus'></i> បន្ថែមសិស្ស
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
@@ -91,6 +124,7 @@
                                 <th>អត្តលេខ</th>
                                 <th>ឈ្មោះ</th>
                                 <th>ភេទ</th>
+                                <th>ថ្នាក់រៀន</th>
                                 <th>សកម្មភាព</th>
                             </tr>
                         </thead>
@@ -106,7 +140,10 @@
                 <div class="section-header">
                     <h2>ស្រង់វត្តមាន</h2>
                     <div class="attendance-controls">
-                        <input type="date" id="attendance-date" class="form-control">
+                        <select id="filter-class-attendance" class="form-control" onchange="renderAttendance()">
+                            <option value="">ជ្រើសរើសថ្នាក់រៀន...</option>
+                        </select>
+                        <input type="date" id="attendance-date" class="form-control" onchange="renderAttendance()">
                         <button class="btn btn-secondary" onclick="generateQR()">
                             <i class='bx bx-qr-scan'></i> បង្ហាញ QR ឱ្យសិស្សស្កេន
                         </button>
@@ -160,6 +197,12 @@
 
                 <input type="hidden" id="student-id">
                 <div class="form-group">
+                    <label>ថ្នាក់រៀន (សម្រាប់បញ្ចូលម្នាក់ៗ និង Excel)</label>
+                    <select id="student-class" class="form-control">
+                        <option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>ឈ្មោះ</label>
                     <input type="text" id="student-name" class="form-control" placeholder="បញ្ចូលឈ្មោះសិស្ស">
                 </div>
@@ -188,6 +231,27 @@
             <p style="margin-bottom: 20px; color: var(--text-secondary);">សូមឱ្យសិស្សយកទូរស័ព្ទមកស្កេន QR Code នេះ ដើម្បីបើកផ្ទាំងចុចវត្តមានដោយខ្លួនឯងសម្រាប់ថ្ងៃនេះ។</p>
             <div id="qrcode" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>
             <p id="qr-link" style="word-break: break-all; font-size: 0.9rem; color: var(--primary-color);"></p>
+        </div>
+    </div>
+
+    <!-- Add/Edit Class Modal -->
+    <div id="class-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2 id="class-modal-title">បន្ថែមថ្នាក់រៀនថ្មី</h2>
+                <button class="close-btn" onclick="closeClassModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <form id="class-form">
+                <input type="hidden" id="class-id">
+                <div class="form-group">
+                    <label>ឈ្មោះថ្នាក់រៀន (ឧ. ទី១០A)</label>
+                    <input type="text" id="class-name" class="form-control" placeholder="បញ្ចូលឈ្មោះថ្នាក់រៀន">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeClassModal()">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+            </form>
         </div>
     </div>
 
