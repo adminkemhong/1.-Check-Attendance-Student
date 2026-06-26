@@ -1,7 +1,7 @@
 // ==========================================================
 // ⚠️ Google Sheets Configuration
 // ==========================================================
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbywtsEiPsC_nNEbtfvSa_gBL7yoIU09-RDYrO-t-nOKhkW3xijbi3fuVu34XrBcuX-m/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQW0a52zFKVFPD1wM1KXY98uDcZl5tSUJo1xcFSNM-aBTQyW80_cr3ZIKv26P1iIfV/exec";
 
 // Global State
 let students = [];
