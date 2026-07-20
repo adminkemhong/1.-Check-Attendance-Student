@@ -9,18 +9,13 @@ let classes = [];
 let attendanceRecords = {};
 
 // DOM Elements
-const dateDisplay = document.getElementById('current-date');
 const attendanceDateInput = document.getElementById('attendance-date');
 const pageTitle = document.getElementById('page-title');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
-    // Set Current Date
-    const today = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    dateDisplay.textContent = today.toLocaleDateString('km-KH', options);
-    
     // Set Default Date in Attendance Tab
+    const today = new Date();
     attendanceDateInput.value = today.toISOString().split('T')[0];
     
     setupNavigation();
@@ -29,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Fetch Data ---
 function fetchDataFromSheets() {
-    document.getElementById('student-table-body').innerHTML = '<tr><td colspan="4" style="text-align: center;">កំពុងទាញយកទិន្នន័យ...</td></tr>';
+    document.getElementById('student-grid').innerHTML = '<div style="grid-column: 1/-1; text-align: center;">កំពុងទាញយកទិន្នន័យ...</div>';
     
     fetch(WEB_APP_URL)
         .then(res => res.json())
@@ -103,6 +98,7 @@ function openStudentModal(id = null) {
             document.getElementById('student-id').value = student.id;
             document.getElementById('student-name').value = student.name;
             document.getElementById('student-gender').value = student.gender;
+            document.getElementById('student-class').value = student.classId;
         }
     } else {
         studentForm.reset();
@@ -125,7 +121,7 @@ function populateClassDropdowns() {
     const studentClassSelect = document.getElementById('student-class');
 
     // Keep the default options
-    filterStudents.innerHTML = '<option value="">គ្រប់ថ្នាក់ទាំងអស់</option>';
+    filterStudents.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
     filterAttendance.innerHTML = '<option value="">ជ្រើសរើសថ្នាក់រៀន...</option>';
     studentClassSelect.innerHTML = '<option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>';
 
@@ -207,8 +203,6 @@ classForm.addEventListener('submit', (e) => {
 
 function deleteClass(id) {
     if(confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យថ្នាក់រៀននេះមែនទេ? (សិស្សក្នុងថ្នាក់នេះនឹងត្រូវបាត់បង់ចំណងថ្នាក់រៀន)')) {
-        document.getElementById('class-table-body').innerHTML = '<tr><td colspan="3" style="text-align: center;">កំពុងលុប...</td></tr>';
-        
         fetch(WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -225,25 +219,34 @@ function deleteClass(id) {
 }
 
 function renderClassesTable() {
-    const tbody = document.getElementById('class-table-body');
-    tbody.innerHTML = '';
+    const grid = document.getElementById('class-grid');
+    grid.innerHTML = '';
+    
+    document.getElementById('class-count-text').textContent = `${classes.length} ថ្នាក់`;
 
     if(classes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">មិនមានទិន្នន័យថ្នាក់រៀនទេ</td></tr>';
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center;">មិនមានទិន្នន័យថ្នាក់រៀនទេ</div>';
         return;
     }
 
     classes.forEach((c) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${c.id}</td>
-            <td>${c.name}</td>
-            <td>
-                <button class="btn btn-secondary" style="padding: 5px; display: inline-flex;" onclick="openClassModal('${c.id}')"><i class='bx bx-edit-alt'></i></button>
-                <button class="btn btn-danger" style="padding: 5px; display: inline-flex;" onclick="deleteClass('${c.id}')"><i class='bx bx-trash'></i></button>
-            </td>
+        const studentCount = students.filter(s => s.classId === c.id).length;
+        
+        const card = document.createElement('div');
+        card.className = 'card class-card';
+        card.innerHTML = `
+            <div class="class-icon"><i class='bx bx-building-house'></i></div>
+            <h3>${c.name}</h3>
+            <p>ថ្នាក់</p>
+            <div class="class-meta">
+                <i class='bx bx-group'></i> ${studentCount} សិស្ស
+            </div>
+            <div class="class-actions">
+                <button class="btn-icon" onclick="openClassModal('${c.id}')"><i class='bx bx-pencil'></i></button>
+                <button class="btn-icon delete" onclick="deleteClass('${c.id}')"><i class='bx bx-trash'></i></button>
+            </div>
         `;
-        tbody.appendChild(tr);
+        grid.appendChild(card);
     });
 }
 
@@ -271,12 +274,10 @@ studentForm.addEventListener('submit', (e) => {
         classId: classInput
     };
 
-    // Prepare all students object
     const objToSave = {};
     students.forEach(s => { objToSave[s.id] = s; });
-    objToSave[studentObj.id] = studentObj; // Add or update
+    objToSave[studentObj.id] = studentObj;
 
-    // Save to Google Sheets
     const submitBtn = studentForm.querySelector('button[type="submit"]');
     submitBtn.textContent = "កំពុងរក្សាទុក...";
     submitBtn.disabled = true;
@@ -309,8 +310,6 @@ studentForm.addEventListener('submit', (e) => {
 
 function deleteStudent(id) {
     if(confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យសិស្សនេះមែនទេ?')) {
-        document.getElementById('student-table-body').innerHTML = '<tr><td colspan="5" style="text-align: center;">កំពុងលុប...</td></tr>';
-        
         fetch(WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -330,44 +329,69 @@ function filterStudents() {
     renderStudentsTable();
 }
 
+function getInitials(name) {
+    if (!name) return '';
+    const parts = name.trim().split(' ');
+    if (parts.length > 1) {
+        return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
 function renderStudentsTable() {
-    const tbody = document.getElementById('student-table-body');
+    const grid = document.getElementById('student-grid');
     const selectedClass = document.getElementById('filter-class-students').value;
-    tbody.innerHTML = '';
+    const searchVal = (document.getElementById('search-student') ? document.getElementById('search-student').value.toLowerCase() : "");
+    
+    grid.innerHTML = '';
 
     let displayStudents = students;
     if (selectedClass) {
-        displayStudents = students.filter(s => s.classId === selectedClass);
+        displayStudents = displayStudents.filter(s => s.classId === selectedClass);
+    }
+    if (searchVal) {
+        displayStudents = displayStudents.filter(s => s.name.toLowerCase().includes(searchVal) || s.id.toLowerCase().includes(searchVal));
     }
 
     if(displayStudents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">មិនមានទិន្នន័យសិស្សទេ</td></tr>';
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center;">មិនមានទិន្នន័យសិស្សទេ</div>';
         return;
     }
 
     displayStudents.forEach((student) => {
         const cls = classes.find(c => c.id === student.classId);
         const className = cls ? cls.name : 'គ្មានថ្នាក់';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${student.id}</td>
-            <td>${student.name}</td>
-            <td>${student.gender}</td>
-            <td><span class="status-badge" style="background:#e0e7ff; color:#4f46e5;">${className}</span></td>
-            <td>
-                <button class="btn btn-secondary" style="padding: 5px; display: inline-flex;" onclick="openStudentModal('${student.id}')"><i class='bx bx-edit-alt'></i></button>
-                <button class="btn btn-danger" style="padding: 5px; display: inline-flex;" onclick="deleteStudent('${student.id}')"><i class='bx bx-trash'></i></button>
-            </td>
+        
+        const card = document.createElement('div');
+        card.className = 'card student-card';
+        card.innerHTML = `
+            <div class="student-card-header">
+                <div class="avatar active" style="background: #f59e0b;">${getInitials(student.name)}</div>
+                <div class="user-details">
+                    <h4>${student.name}</h4>
+                    <p>${student.gender}</p>
+                    <span class="badge">${className}</span>
+                </div>
+            </div>
+            <div class="student-card-info">
+                <div><i class='bx bx-calendar'></i> កំណើត: ពុំទាន់មាន</div>
+                <div><i class='bx bx-phone'></i> ពុំទាន់មាន</div>
+                <div><i class='bx bx-map'></i> ពុំទាន់មាន</div>
+            </div>
+            <div class="card-footer">
+                <button class="card-footer-btn" onclick="openStudentModal('${student.id}')"><i class='bx bx-edit-alt'></i> កែ</button>
+                <button class="card-footer-btn delete" onclick="deleteStudent('${student.id}')"><i class='bx bx-trash'></i> លុប</button>
+            </div>
         `;
-        tbody.appendChild(tr);
+        grid.appendChild(card);
     });
 }
 
 // --- Excel Import Logic ---
 function handleExcelUpload(event) {
-    const classInput = document.getElementById('student-class').value;
+    const classInput = document.getElementById('filter-class-students').value;
     if (!classInput) {
-        alert("សូមជ្រើសរើសថ្នាក់រៀនជាមុនសិន មុននឹងបញ្ជូល Excel!");
+        alert("សូមជ្រើសរើសថ្នាក់រៀនជាមុនសិននៅក្នុងបញ្ជីថ្នាក់រៀន!");
         return;
     }
 
@@ -380,7 +404,7 @@ function handleExcelUpload(event) {
     if (fileExt === 'csv') {
         reader.onload = (evt) => {
             const json = evt.target.result.split('\n').map(row => row.split(','));
-            processExcelData(json);
+            processExcelData(json, classInput);
         };
         reader.readAsText(file);
     } else if (fileExt === 'xlsx' || fileExt === 'xls') {
@@ -389,7 +413,7 @@ function handleExcelUpload(event) {
             const workbook = window.XLSX.read(data, {type: 'array'});
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const json = window.XLSX.utils.sheet_to_json(firstSheet, {header: 1});
-            processExcelData(json);
+            processExcelData(json, classInput);
         };
         reader.readAsArrayBuffer(file);
     } else {
@@ -398,9 +422,9 @@ function handleExcelUpload(event) {
     event.target.value = ''; // Reset input
 }
 
-function processExcelData(rows) {
+function processExcelData(rows, targetClassId) {
     const objToSave = {};
-    students.forEach(s => { objToSave[s.id] = s; }); // Keep existing
+    students.forEach(s => { objToSave[s.id] = s; }); 
 
     let count = 0;
     
@@ -409,23 +433,16 @@ function processExcelData(rows) {
             const name = String(row[0]).trim();
             const gender = String(row[1]).trim();
             
-            // Skip header row
             if (name && gender && name !== 'ឈ្មោះ' && name !== 'Name' && name !== 'ឈ្មោះសិស្ស') {
                 const id = 'STU-' + Date.now().toString().slice(-6) + Math.random().toString(36).substr(2, 4);
-                const classInput = document.getElementById('student-class').value;
-                objToSave[id] = { id, name, gender, classId: classInput };
+                objToSave[id] = { id, name, gender, classId: targetClassId };
                 count++;
             }
         }
     });
 
     if (count > 0) {
-        document.getElementById('student-table-body').innerHTML = '<tr><td colspan="4" style="text-align: center;">កំពុងរក្សាទុកពី Excel...</td></tr>';
-        const excelBtn = document.querySelector('#excel-upload-section button');
-        const originalText = excelBtn.innerHTML;
-        excelBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> កំពុងបញ្ចូល...";
-        excelBtn.disabled = true;
-
+        alert(`កំពុងបញ្ចូលសិស្សចំនួន ${count} នាក់...`);
         fetch(WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -436,82 +453,111 @@ function processExcelData(rows) {
         })
         .then(res => res.json())
         .then(res => {
-            excelBtn.innerHTML = originalText;
-            excelBtn.disabled = false;
             if(res.status === 'success') {
                 alert(`បានបញ្ចូលសិស្សចំនួន ${count} នាក់ដោយជោគជ័យពី File!`);
-                closeStudentModal();
                 fetchDataFromSheets();
             } else {
                 alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!");
                 fetchDataFromSheets();
             }
         }).catch(err => {
-            excelBtn.innerHTML = originalText;
-            excelBtn.disabled = false;
             alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Google Sheets!");
             fetchDataFromSheets();
         });
     } else {
-        alert("មិនមានទិន្នន័យត្រឹមត្រូវទេ។ សូមប្រាកដថាជួរទី១ជា 'ឈ្មោះ' និងជួរទី២ជា 'ភេទ'។");
+        alert("មិនមានទិន្នន័យត្រឹមត្រូវទេ។");
     }
 }
 
 // --- Attendance Logic ---
-attendanceDateInput.addEventListener('change', renderAttendanceTable);
+
+function setStatus(studentId, statusValue) {
+    const radios = document.getElementsByName(`att_${studentId}`);
+    for(let r of radios) {
+        if(r.value === statusValue) r.checked = true;
+    }
+    // Update active class for visual buttons
+    document.querySelectorAll(`.status-btn[data-id="${studentId}"]`).forEach(btn => {
+        btn.classList.remove('active-present', 'active-absent', 'active-leave');
+    });
+    
+    const activeBtn = document.querySelector(`.status-btn[data-id="${studentId}"][data-val="${statusValue}"]`);
+    if(activeBtn) {
+        if(statusValue === 'present') activeBtn.classList.add('active-present');
+        if(statusValue === 'absent') activeBtn.classList.add('active-absent');
+        if(statusValue === 'leave') activeBtn.classList.add('active-leave');
+    }
+}
 
 function renderAttendanceTable() {
-    const tbody = document.getElementById('attendance-table-body');
+    const list = document.getElementById('attendance-list');
     const selectedDate = attendanceDateInput.value;
     const selectedClass = document.getElementById('filter-class-attendance').value;
 
-    tbody.innerHTML = '';
+    list.innerHTML = '';
     
+    // Reset stats
+    document.getElementById('att-stat-present').textContent = 0;
+    document.getElementById('att-stat-absent').textContent = 0;
+    document.getElementById('att-stat-leave').textContent = 0;
+
     if (!selectedClass) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">សូមជ្រើសរើសថ្នាក់រៀនជាមុនសិន!</td></tr>';
+        list.innerHTML = '<div style="padding: 20px; text-align: center;">សូមជ្រើសរើសថ្នាក់រៀនសិន!</div>';
         return;
     }
 
     let displayStudents = students.filter(s => s.classId === selectedClass);
     
     if(displayStudents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">មិនមានសិស្សក្នុងថ្នាក់នេះទេ</td></tr>';
+        list.innerHTML = '<div style="padding: 20px; text-align: center;">មិនមានសិស្សក្នុងថ្នាក់នេះទេ</div>';
         return;
     }
 
     const currentRecords = attendanceRecords[selectedDate] || {};
+    let countPresent = 0, countAbsent = 0, countLeave = 0;
 
-    displayStudents.forEach(student => {
+    displayStudents.forEach((student, index) => {
         const status = currentRecords[student.id] || 'present';
-        
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${student.id}</td>
-            <td>${student.name}</td>
-            <td>${student.gender}</td>
-            <td>
-                <div class="radio-group">
-                    <label>
-                        <input type="radio" name="att_${student.id}" value="present" ${status==='present'?'checked':''}>
-                        <span class="status-badge status-present">វត្តមាន</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="att_${student.id}" value="absent" ${status==='absent'?'checked':''}>
-                        <span class="status-badge status-absent">អវត្តមាន</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="att_${student.id}" value="leave" ${status==='leave'?'checked':''}>
-                        <span class="status-badge status-leave">ច្បាប់</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="att_${student.id}" value="late" ${status==='late'?'checked':''}>
-                        <span class="status-badge status-late">យឺត</span>
-                    </label>
+        if(status === 'present') countPresent++;
+        if(status === 'absent') countAbsent++;
+        if(status === 'leave') countLeave++;
+
+        const cls = classes.find(c => c.id === student.classId);
+        const className = cls ? cls.name : '';
+
+        const row = document.createElement('div');
+        row.className = 'card attendance-row';
+        row.innerHTML = `
+            <div class="user-info">
+                <div class="avatar">${getInitials(student.name)}</div>
+                <div class="user-details">
+                    <h4>${student.name}</h4>
+                    <p><span class="status-dot"></span> ${student.gender} . ${className}</p>
                 </div>
-            </td>
+            </div>
+            <div class="attendance-actions">
+                <!-- Hidden inputs for form saving -->
+                <div style="display:none;">
+                    <input type="radio" name="att_${student.id}" value="present" ${status==='present'?'checked':''}>
+                    <input type="radio" name="att_${student.id}" value="absent" ${status==='absent'?'checked':''}>
+                    <input type="radio" name="att_${student.id}" value="leave" ${status==='leave'?'checked':''}>
+                </div>
+                
+                <!-- Visual Buttons -->
+                <button class="status-btn ${status==='present'?'active-present':''}" data-id="${student.id}" data-val="present" onclick="setStatus('${student.id}', 'present')">មានវត្តមាន</button>
+                <button class="status-btn ${status==='absent'?'active-absent':''}" data-id="${student.id}" data-val="absent" onclick="setStatus('${student.id}', 'absent')">អវត្តមាន</button>
+                <button class="status-btn ${status==='leave'?'active-leave':''}" data-id="${student.id}" data-val="leave" onclick="setStatus('${student.id}', 'leave')">ច្បាប់</button>
+                
+                <input type="text" class="comment-input" placeholder="សម្គាល់...">
+                <button class="btn btn-dark" style="padding: 6px 12px; margin-left: 10px; font-size: 0.85rem;" onclick="saveAttendance()"><i class='bx bx-save'></i> រក្សាទុក</button>
+            </div>
         `;
-        tbody.appendChild(tr);
+        list.appendChild(row);
     });
+
+    document.getElementById('att-stat-present').textContent = countPresent;
+    document.getElementById('att-stat-absent').textContent = countAbsent;
+    document.getElementById('att-stat-leave').textContent = countLeave;
 }
 
 function saveAttendance() {
@@ -539,10 +585,6 @@ function saveAttendance() {
         }
     });
     
-    const btn = document.querySelector('button[onclick="saveAttendance()"]');
-    btn.textContent = "កំពុងរក្សាទុក...";
-    btn.disabled = true;
-
     fetch(WEB_APP_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -554,8 +596,6 @@ function saveAttendance() {
     })
     .then(res => res.json())
     .then(res => {
-        btn.innerHTML = "<i class='bx bx-save'></i> រក្សាទុកវត្តមាន";
-        btn.disabled = false;
         if(res.status === 'success') {
             alert("ទិន្នន័យវត្តមានត្រូវបានរក្សាទុកជោគជ័យ!");
             fetchDataFromSheets();
@@ -563,8 +603,6 @@ function saveAttendance() {
             alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!");
         }
     }).catch(err => {
-        btn.innerHTML = "<i class='bx bx-save'></i> រក្សាទុកវត្តមាន";
-        btn.disabled = false;
         alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Google Sheets!");
     });
 }
@@ -574,31 +612,25 @@ const qrModal = document.getElementById('qr-modal');
 let qrcode = null;
 
 function generateQR() {
-    const selectedDate = attendanceDateInput.value;
-    if(!selectedDate) {
-        alert("សូមជ្រើសរើសកាលបរិច្ឆេទមុននឹងបង្កើត QR Code!");
-        return;
-    }
-
+    const selectedDate = attendanceDateInput.value || new Date().toISOString().split('T')[0];
     const selectedClass = document.getElementById('filter-class-attendance').value;
+    
     if(!selectedClass) {
         alert("សូមជ្រើសរើសថ្នាក់រៀនជាមុនសិន មុននឹងបង្កើត QR Code!");
         return;
     }
 
-    // Generate link based on current domain, pointing to scan.html
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
     const scanUrl = `${baseUrl}/scan.html?date=${selectedDate}&classId=${selectedClass}`;
     
     const qrContainer = document.getElementById('qrcode');
-    qrContainer.innerHTML = ''; // clear previous
+    qrContainer.innerHTML = ''; 
     
-    // Create new QR Code
     qrcode = new QRCode(qrContainer, {
         text: scanUrl,
         width: 200,
         height: 200,
-        colorDark : "#4f46e5",
+        colorDark : "#111827",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
     });

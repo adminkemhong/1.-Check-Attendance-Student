@@ -3,201 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>កម្មវិធី គ្រប់គ្រងអវត្តមានសិស្ស</title>
+    <title>កម្មវិធី គ្រប់គ្រងសិស្ស</title>
     <link rel="stylesheet" href="style.css">
     <!-- Boxicons for Modern Icons -->
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://fonts.googleapis.com/css2?family=Hanuman:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK (Compat version for Vanilla JS) -->
-    <!-- QRCode.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- SheetJS for Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar glass-panel">
+        <aside class="sidebar">
             <div class="logo">
-                <i class='bx bxs-graduation'></i>
-                <h2>កម្មវិធី គ្រប់គ្រងអវត្តមានសិស្ស</h2>
+                <div class="icon-box">
+                    <i class='bx bxs-graduation'></i>
+                </div>
+                <div class="logo-text">
+                    <h2>ប្រព័ន្ធគ្រប់គ្រងសិស្ស</h2>
+                    <span>Student Management</span>
+                </div>
             </div>
+            
             <nav class="nav-menu">
                 <a href="#" class="nav-link active" data-tab="dashboard">
                     <i class='bx bx-grid-alt'></i>
-                    <span>ទំព័រដើម</span>
-                </a>
-                <a href="#" class="nav-link" data-tab="classes">
-                    <i class='bx bx-building-house'></i>
-                    <span>ថ្នាក់រៀន</span>
+                    <span>ផ្ទាំងគ្រប់គ្រង</span>
                 </a>
                 <a href="#" class="nav-link" data-tab="students">
-                    <i class='bx bx-user-pin'></i>
-                    <span>បញ្ជីសិស្ស</span>
+                    <i class='bx bx-user'></i>
+                    <span>សិស្ស</span>
+                </a>
+                <a href="#" class="nav-link" data-tab="classes">
+                    <i class='bx bx-building'></i>
+                    <span>ថ្នាក់</span>
+                </a>
+                <a href="#" class="nav-link" data-tab="subjects">
+                    <i class='bx bx-book-open'></i>
+                    <span>មុខវិជ្ជា</span>
                 </a>
                 <a href="#" class="nav-link" data-tab="attendance">
                     <i class='bx bx-calendar-check'></i>
-                    <span>ស្រង់វត្តមាន</span>
+                    <span>វត្តមាន</span>
+                </a>
+                <a href="#" class="nav-link" data-tab="scores">
+                    <i class='bx bx-medal'></i>
+                    <span>ពិន្ទុ</span>
                 </a>
             </nav>
+            
+            <div class="sidebar-footer">
+                © 2026 ប្រព័ន្ធគ្រប់គ្រងសិស្ស
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
             <!-- Header -->
-            <header class="top-header glass-panel">
-                <h1 id="page-title">ទំព័រដើម</h1>
-                <div class="header-actions">
-                    <div class="date-display" id="current-date"></div>
-                </div>
+            <header class="top-header">
+                <h1 id="page-title">ផ្ទាំងគ្រប់គ្រង</h1>
             </header>
 
             <!-- Dashboard Tab -->
-            <section id="dashboard" class="tab-content active glass-panel">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class='bx bx-group'></i></div>
-                        <div class="stat-info">
-                            <h3>សិស្សសរុប</h3>
-                            <p id="total-students">0</p>
-                        </div>
+            <section id="dashboard" class="tab-content active">
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="card">
+                        <h3 style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 10px;">សិស្សសរុប</h3>
+                        <p id="total-students" style="font-size: 2rem; font-weight: bold;">0</p>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon present"><i class='bx bx-check-circle'></i></div>
-                        <div class="stat-info">
-                            <h3>វត្តមានថ្ងៃនេះ</h3>
-                            <p id="today-present">0</p>
-                        </div>
+                    <div class="card">
+                        <h3 style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 10px;">វត្តមានថ្ងៃនេះ</h3>
+                        <p id="today-present" style="font-size: 2rem; font-weight: bold; color: var(--secondary-color);">0</p>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon absent"><i class='bx bx-x-circle'></i></div>
-                        <div class="stat-info">
-                            <h3>អវត្តមានថ្ងៃនេះ</h3>
-                            <p id="today-absent">0</p>
-                        </div>
+                    <div class="card">
+                        <h3 style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 10px;">អវត្តមានថ្ងៃនេះ</h3>
+                        <p id="today-absent" style="font-size: 2rem; font-weight: bold; color: var(--danger-color);">0</p>
                     </div>
-                </div>
-            </section>
-
-            <!-- Classes Tab -->
-            <section id="classes" class="tab-content glass-panel">
-                <div class="section-header">
-                    <h2>បញ្ជីថ្នាក់រៀន</h2>
-                    <button class="btn btn-primary" onclick="openClassModal()">
-                        <i class='bx bx-plus'></i> បន្ថែមថ្នាក់រៀន
-                    </button>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>អត្តលេខ</th>
-                                <th>ឈ្មោះថ្នាក់រៀន</th>
-                                <th>សកម្មភាព</th>
-                            </tr>
-                        </thead>
-                        <tbody id="class-table-body">
-                            <!-- Classes injected via JS -->
-                        </tbody>
-                    </table>
                 </div>
             </section>
 
             <!-- Students Tab -->
-            <section id="students" class="tab-content glass-panel">
-                <div class="section-header">
-                    <h2>បញ្ជីឈ្មោះសិស្ស</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="filter-class-students" class="form-control" onchange="filterStudents()">
-                            <option value="">គ្រប់ថ្នាក់ទាំងអស់</option>
+            <section id="students" class="tab-content">
+                <div class="students-toolbar">
+                    <div class="students-search">
+                        <div class="search-wrapper">
+                            <i class='bx bx-search'></i>
+                            <input type="text" id="search-student" class="form-control" placeholder="ស្វែងរកតាមឈ្មោះ ឬអត្តសញ្ញាណ..." onkeyup="filterStudents()">
+                        </div>
+                        <select id="filter-class-students" class="form-control" style="width: 200px;" onchange="filterStudents()">
+                            <option value="">ថ្នាក់ទាំងអស់</option>
                         </select>
+                    </div>
+                    <div class="students-actions">
                         <button class="btn btn-primary" onclick="openStudentModal()">
                             <i class='bx bx-plus'></i> បន្ថែមសិស្ស
                         </button>
+                        <button class="btn btn-success" onclick="document.getElementById('excel-upload').click()">
+                            <i class='bx bx-upload'></i> នាំចូល Excel
+                        </button>
+                        <input type="file" id="excel-upload" accept=".csv, .xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
+                        <button class="btn btn-secondary">
+                            <i class='bx bx-download'></i> នាំចេញ
+                        </button>
+                        <button class="btn btn-dark" onclick="generateQR()">
+                            <i class='bx bx-qr-scan'></i> បោះពុម្ព QR
+                        </button>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>អត្តលេខ</th>
-                                <th>ឈ្មោះ</th>
-                                <th>ភេទ</th>
-                                <th>ថ្នាក់រៀន</th>
-                                <th>សកម្មភាព</th>
-                            </tr>
-                        </thead>
-                        <tbody id="student-table-body">
-                            <!-- Students injected via JS -->
-                        </tbody>
-                    </table>
+                
+                <div id="student-grid" class="grid-container">
+                    <!-- Students injected via JS -->
+                </div>
+            </section>
+
+            <!-- Classes Tab -->
+            <section id="classes" class="tab-content">
+                <div class="classes-toolbar">
+                    <span id="class-count-text">0 ថ្នាក់</span>
+                    <button class="btn btn-primary" onclick="openClassModal()">
+                        <i class='bx bx-plus'></i> បន្ថែមថ្នាក់
+                    </button>
+                </div>
+                
+                <div id="class-grid" class="grid-container">
+                    <!-- Classes injected via JS -->
+                </div>
+            </section>
+            
+            <!-- Subjects Tab (Placeholder) -->
+            <section id="subjects" class="tab-content">
+                <div class="card empty-state">
+                    <i class='bx bx-book-open'></i>
+                    <h3>សូមបន្ថែមមុខវិជ្ជាសិន</h3>
                 </div>
             </section>
 
             <!-- Attendance Tab -->
-            <section id="attendance" class="tab-content glass-panel">
-                <div class="section-header">
-                    <h2>ស្រង់វត្តមាន</h2>
-                    <div class="attendance-controls">
-                        <select id="filter-class-attendance" class="form-control" onchange="renderAttendance()">
-                            <option value="">ជ្រើសរើសថ្នាក់រៀន...</option>
+            <section id="attendance" class="tab-content">
+                <div class="card attendance-top-bar">
+                    <div class="form-group">
+                        <label>ថ្ងៃ</label>
+                        <input type="date" id="attendance-date" class="form-control" onchange="renderAttendanceTable()">
+                    </div>
+                    <div class="form-group">
+                        <label>ថ្នាក់</label>
+                        <select id="filter-class-attendance" class="form-control" onchange="renderAttendanceTable()">
+                            <option value="">ថ្នាក់ទាំងអស់</option>
                         </select>
-                        <input type="date" id="attendance-date" class="form-control" onchange="renderAttendance()">
-                        <button class="btn btn-secondary" onclick="generateQR()">
-                            <i class='bx bx-qr-scan'></i> បង្ហាញ QR ឱ្យសិស្សស្កេន
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px; margin-top: 24px;">
+                        <button class="btn btn-dark" onclick="generateQR()">
+                            <i class='bx bx-qr-scan'></i> ស្កេន QR
                         </button>
-                        <button class="btn btn-primary" onclick="saveAttendance()">
-                            <i class='bx bx-save'></i> រក្សាទុក
+                        <button class="btn btn-success" onclick="saveAttendance()">
+                            <i class='bx bx-save'></i> រក្សាទុកទាំងអស់
                         </button>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>អត្តលេខ</th>
-                                <th>ឈ្មោះ</th>
-                                <th>ភេទ</th>
-                                <th>វត្តមាន</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendance-table-body">
-                            <!-- Attendance injected via JS -->
-                        </tbody>
-                    </table>
+
+                <div class="stats-grid">
+                    <div class="stat-box stat-present">
+                        <h3 id="att-stat-present">0</h3>
+                        <p>មានវត្តមាន</p>
+                    </div>
+                    <div class="stat-box stat-absent">
+                        <h3 id="att-stat-absent">0</h3>
+                        <p>អវត្តមាន</p>
+                    </div>
+                    <div class="stat-box stat-leave">
+                        <h3 id="att-stat-leave">0</h3>
+                        <p>ច្បាប់</p>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+                    <div id="attendance-list" class="attendance-list">
+                        <!-- Attendance rows injected via JS -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Scores Tab (Placeholder) -->
+            <section id="scores" class="tab-content">
+                <div class="card" style="margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                        <div class="form-group" style="margin: 0;">
+                            <label>ថ្នាក់</label>
+                            <select class="form-control"><option>ថ្នាក់ទាំងអស់</option></select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label>មេសល</label>
+                            <select class="form-control"><option>មេសលទី១</option></select>
+                        </div>
+                        <button class="btn btn-primary"><i class='bx bx-save'></i> រក្សាទុក</button>
+                    </div>
+                </div>
+                
+                <div class="card empty-state">
+                    <i class='bx bx-medal'></i>
+                    <h3>សូមបន្ថែមមុខវិជ្ជាសិន</h3>
                 </div>
             </section>
 
+            <!-- Bolt Badge -->
+            <div class="bolt-badge">
+                <i class='bx bxl-bootstrap' style="color: black;"></i>
+                <span>Made in Bolt</span>
+            </div>
         </main>
     </div>
 
     <!-- Add/Edit Student Modal -->
     <div id="student-modal" class="modal">
-        <div class="modal-content glass-panel">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modal-title">បន្ថែមសិស្សថ្មី</h2>
                 <button class="close-btn" onclick="closeStudentModal()"><i class='bx bx-x'></i></button>
             </div>
             <form id="student-form">
-                <div id="excel-upload-section" style="background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px dashed rgba(79, 70, 229, 0.3);">
-                    <p style="font-size: 0.95rem; margin-bottom: 12px; color: var(--primary-color); font-weight: bold;"><i class='bx bx-file'></i> បញ្ចូលសិស្សច្រើនតាម Excel</p>
-                    <input type="file" id="excel-upload" accept=".csv, .xlsx, .xls" style="display: none;" onchange="handleExcelUpload(event)">
-                    <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center; background: white; border: 1px solid var(--primary-color); color: var(--primary-color); font-weight: 500;" onclick="document.getElementById('excel-upload').click()">
-                        <i class='bx bx-upload'></i> ជ្រើសរើស File Excel
-                    </button>
-                    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 10px;">ទម្រង់៖ ជួរទី១=ឈ្មោះ, ជួរទី២=ភេទ (.xlsx, .csv)</p>
-                </div>
-                
-                <div id="divider-section" style="display: flex; align-items: center; margin-bottom: 20px;">
-                    <div style="flex-grow: 1; border-top: 1px solid #e5e7eb;"></div>
-                    <span style="margin: 0 10px; color: #9ca3af; font-size: 0.85rem; font-weight: bold;">ឬ បញ្ចូលម្នាក់ម្តង</span>
-                    <div style="flex-grow: 1; border-top: 1px solid #e5e7eb;"></div>
-                </div>
-
                 <input type="hidden" id="student-id">
                 <div class="form-group">
-                    <label>ថ្នាក់រៀន (សម្រាប់បញ្ចូលម្នាក់ៗ និង Excel)</label>
+                    <label>ថ្នាក់រៀន</label>
                     <select id="student-class" class="form-control">
                         <option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>
                     </select>
@@ -223,7 +250,7 @@
 
     <!-- QR Code Modal -->
     <div id="qr-modal" class="modal">
-        <div class="modal-content glass-panel" style="text-align: center; max-width: 400px;">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
             <div class="modal-header">
                 <h2>ស្កេនដើម្បីចុចវត្តមាន</h2>
                 <button class="close-btn" onclick="closeQRModal()"><i class='bx bx-x'></i></button>
@@ -236,7 +263,7 @@
 
     <!-- Add/Edit Class Modal -->
     <div id="class-modal" class="modal">
-        <div class="modal-content glass-panel">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2 id="class-modal-title">បន្ថែមថ្នាក់រៀនថ្មី</h2>
                 <button class="close-btn" onclick="closeClassModal()"><i class='bx bx-x'></i></button>
