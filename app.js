@@ -471,133 +471,164 @@ function processExcelData(rows, targetClassId) {
 
 // --- Attendance Logic ---
 
-function setStatus(studentId, statusValue) {
-    const radios = document.getElementsByName(`att_${studentId}`);
-    for(let r of radios) {
-        if(r.value === statusValue) r.checked = true;
-    }
-    // Update active class for visual buttons
-    document.querySelectorAll(`.status-btn[data-id="${studentId}"]`).forEach(btn => {
-        btn.classList.remove('active-present', 'active-absent', 'active-leave');
-    });
-    
-    const activeBtn = document.querySelector(`.status-btn[data-id="${studentId}"][data-val="${statusValue}"]`);
-    if(activeBtn) {
-        if(statusValue === 'present') activeBtn.classList.add('active-present');
-        if(statusValue === 'absent') activeBtn.classList.add('active-absent');
-        if(statusValue === 'leave') activeBtn.classList.add('active-leave');
-    }
+function getStatusText(status) {
+    if(status === 'present') return '<span class="status-badge present">មានវត្តមាន</span>';
+    if(status === 'late') return '<span class="status-badge late">យឺត</span>';
+    if(status === 'absent') return '<span class="status-badge absent">អវត្តមាន</span>';
+    if(status === 'leave') return '<span class="status-badge leave">មានច្បាប់</span>';
+    return '<span class="status-badge present">មានវត្តមាន</span>';
 }
 
 function renderAttendanceTable() {
     const list = document.getElementById('attendance-list');
     const selectedDate = attendanceDateInput.value;
     const selectedClass = document.getElementById('filter-class-attendance').value;
+    const searchVal = document.getElementById('search-attendance') ? document.getElementById('search-attendance').value.toLowerCase() : "";
 
     list.innerHTML = '';
     
     // Reset stats
     document.getElementById('att-stat-present').textContent = 0;
+    document.getElementById('att-stat-late').textContent = 0;
     document.getElementById('att-stat-absent').textContent = 0;
     document.getElementById('att-stat-leave').textContent = 0;
 
     if (!selectedClass) {
-        list.innerHTML = '<div style="padding: 20px; text-align: center;">សូមជ្រើសរើសថ្នាក់រៀនសិន!</div>';
+        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">សូមជ្រើសរើសថ្នាក់រៀនសិន!</td></tr>';
         return;
     }
 
     let displayStudents = students.filter(s => s.classId === selectedClass);
     
+    if (searchVal) {
+        displayStudents = displayStudents.filter(s => s.name.toLowerCase().includes(searchVal) || s.id.toLowerCase().includes(searchVal));
+    }
+
     if(displayStudents.length === 0) {
-        list.innerHTML = '<div style="padding: 20px; text-align: center;">មិនមានសិស្សក្នុងថ្នាក់នេះទេ</div>';
+        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">មិនមានសិស្សក្នុងថ្នាក់នេះទេ</td></tr>';
         return;
     }
 
     const currentRecords = attendanceRecords[selectedDate] || {};
-    let countPresent = 0, countAbsent = 0, countLeave = 0;
+    let countPresent = 0, countLate = 0, countAbsent = 0, countLeave = 0;
 
-    displayStudents.forEach((student, index) => {
+    displayStudents.forEach((student) => {
         const status = currentRecords[student.id] || 'present';
         if(status === 'present') countPresent++;
+        if(status === 'late') countLate++;
         if(status === 'absent') countAbsent++;
         if(status === 'leave') countLeave++;
 
         const cls = classes.find(c => c.id === student.classId);
         const className = cls ? cls.name : '';
 
-        const row = document.createElement('div');
-        row.className = 'card attendance-row';
-        row.innerHTML = `
-            <div class="user-info">
-                <div class="avatar">${getInitials(student.name)}</div>
-                <div class="user-details">
-                    <h4>${student.name}</h4>
-                    <p><span class="status-dot"></span> ${student.gender} . ${className}</p>
+        // Placeholder for attendance rate logic
+        const mockRate = Math.floor(Math.random() * 20) + 80; 
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <div class="student-col">
+                    <div class="avatar active" style="background: #f59e0b;">${getInitials(student.name)}</div>
+                    <div class="student-info">
+                        <h4>${student.name}</h4>
+                        <p>${student.id}</p>
+                    </div>
                 </div>
-            </div>
-            <div class="attendance-actions">
-                <!-- Hidden inputs for form saving -->
-                <div style="display:none;">
-                    <input type="radio" name="att_${student.id}" value="present" ${status==='present'?'checked':''}>
-                    <input type="radio" name="att_${student.id}" value="absent" ${status==='absent'?'checked':''}>
-                    <input type="radio" name="att_${student.id}" value="leave" ${status==='leave'?'checked':''}>
+            </td>
+            <td>${className}</td>
+            <td>
+                <div class="att-rate-col">
+                    <div class="progress-bar"><div class="progress bg-green" style="width: ${mockRate}%;"></div></div>
+                    <span>${mockRate}%</span>
                 </div>
-                
-                <!-- Visual Buttons -->
-                <button class="status-btn ${status==='present'?'active-present':''}" data-id="${student.id}" data-val="present" onclick="setStatus('${student.id}', 'present')">មានវត្តមាន</button>
-                <button class="status-btn ${status==='absent'?'active-absent':''}" data-id="${student.id}" data-val="absent" onclick="setStatus('${student.id}', 'absent')">អវត្តមាន</button>
-                <button class="status-btn ${status==='leave'?'active-leave':''}" data-id="${student.id}" data-val="leave" onclick="setStatus('${student.id}', 'leave')">ច្បាប់</button>
-                
-                <input type="text" class="comment-input" placeholder="សម្គាល់...">
-                <button class="btn btn-dark" style="padding: 6px 12px; margin-left: 10px; font-size: 0.85rem;" onclick="saveAttendance()"><i class='bx bx-save'></i> រក្សាទុក</button>
-            </div>
+            </td>
+            <td>${getStatusText(status)}</td>
+            <td>
+                <button class="btn-outline-blue" onclick="openChangeAttModal('${student.id}', '${student.name}')">ប្ដូរ</button>
+            </td>
         `;
-        list.appendChild(row);
+        list.appendChild(tr);
     });
 
+    const total = displayStudents.length;
+    
     document.getElementById('att-stat-present').textContent = countPresent;
+    document.getElementById('prog-present').style.width = total ? (countPresent/total*100) + '%' : '0%';
+    document.getElementById('pct-present').textContent = total ? Math.round(countPresent/total*100) + '% នៃសិស្ស' : '0% នៃសិស្ស';
+    
+    document.getElementById('att-stat-late').textContent = countLate;
+    document.getElementById('prog-late').style.width = total ? (countLate/total*100) + '%' : '0%';
+    document.getElementById('pct-late').textContent = total ? Math.round(countLate/total*100) + '% នៃសិស្ស' : '0% នៃសិស្ស';
+
     document.getElementById('att-stat-absent').textContent = countAbsent;
+    document.getElementById('prog-absent').style.width = total ? (countAbsent/total*100) + '%' : '0%';
+    document.getElementById('pct-absent').textContent = total ? Math.round(countAbsent/total*100) + '% នៃសិស្ស' : '0% នៃសិស្ស';
+
     document.getElementById('att-stat-leave').textContent = countLeave;
+    document.getElementById('prog-leave').style.width = total ? (countLeave/total*100) + '%' : '0%';
+    document.getElementById('pct-leave').textContent = total ? Math.round(countLeave/total*100) + '% នៃសិស្ស' : '0% នៃសិស្ស';
 }
 
-function saveAttendance() {
+function bulkSetAttendance(statusValue) {
     const selectedDate = attendanceDateInput.value;
-    if(!selectedDate) {
-        alert("សូមជ្រើសរើសកាលបរិច្ឆេទ!");
-        return;
-    }
     const selectedClass = document.getElementById('filter-class-attendance').value;
-    if(!selectedClass) {
-        alert("សូមជ្រើសរើសថ្នាក់រៀន!");
+    
+    if(!selectedDate || !selectedClass) {
+        alert("សូមជ្រើសរើសកាលបរិច្ឆេទ និងថ្នាក់រៀនសិន!");
         return;
     }
     
-    const currentRecords = {};
+    if(!confirm(`តើអ្នកពិតជាចង់ដាក់សិស្សទាំងអស់ក្នុងថ្នាក់នេះឱ្យ "${statusValue}" មែនទេ?`)) return;
+    
+    const currentRecords = attendanceRecords[selectedDate] || {};
     let displayStudents = students.filter(s => s.classId === selectedClass);
-
+    
     displayStudents.forEach(student => {
-        const radios = document.getElementsByName(`att_${student.id}`);
-        for(let radio of radios) {
-            if(radio.checked) {
-                currentRecords[student.id] = radio.value;
-                break;
-            }
-        }
+        currentRecords[student.id] = statusValue;
     });
     
+    saveAttendanceDataToServer(selectedDate, currentRecords);
+}
+
+const changeAttModal = document.getElementById('change-att-modal');
+
+function openChangeAttModal(studentId, studentName) {
+    document.getElementById('change-att-student-id').value = studentId;
+    document.getElementById('change-att-student-name').textContent = studentName;
+    changeAttModal.classList.add('active');
+}
+
+function closeChangeAttModal() {
+    changeAttModal.classList.remove('active');
+}
+
+function saveSingleAttendance(statusValue) {
+    const selectedDate = attendanceDateInput.value;
+    const studentId = document.getElementById('change-att-student-id').value;
+    
+    if(!selectedDate || !studentId) return;
+    
+    const currentRecords = attendanceRecords[selectedDate] || {};
+    currentRecords[studentId] = statusValue;
+    
+    closeChangeAttModal();
+    saveAttendanceDataToServer(selectedDate, currentRecords);
+}
+
+function saveAttendanceDataToServer(date, records) {
     fetch(WEB_APP_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
             action: "updateAttendance",
-            date: selectedDate,
-            records: currentRecords
+            date: date,
+            records: records
         })
     })
     .then(res => res.json())
     .then(res => {
         if(res.status === 'success') {
-            alert("ទិន្នន័យវត្តមានត្រូវបានរក្សាទុកជោគជ័យ!");
             fetchDataFromSheets();
         } else {
             alert("មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!");

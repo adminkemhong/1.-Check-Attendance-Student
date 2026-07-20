@@ -141,46 +141,74 @@
 
             <!-- Attendance Tab -->
             <section id="attendance" class="tab-content">
-                <div class="card attendance-top-bar">
-                    <div class="form-group">
-                        <label>ថ្ងៃ</label>
-                        <input type="date" id="attendance-date" class="form-control" onchange="renderAttendanceTable()">
+                <!-- Attendance Stats -->
+                <div class="attendance-stats">
+                    <div class="stat-card">
+                        <p class="stat-title">មានវត្តមាន</p>
+                        <h2 class="stat-value text-green" id="att-stat-present">0</h2>
+                        <div class="progress-bar"><div class="progress bg-green" id="prog-present" style="width: 0%;"></div></div>
+                        <p class="stat-percent" id="pct-present">0% នៃសិស្ស</p>
                     </div>
-                    <div class="form-group">
-                        <label>ថ្នាក់</label>
-                        <select id="filter-class-attendance" class="form-control" onchange="renderAttendanceTable()">
+                    <div class="stat-card">
+                        <p class="stat-title">យឺត</p>
+                        <h2 class="stat-value text-yellow" id="att-stat-late">0</h2>
+                        <div class="progress-bar"><div class="progress bg-yellow" id="prog-late" style="width: 0%;"></div></div>
+                        <p class="stat-percent" id="pct-late">0% នៃសិស្ស</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-title">អវត្តមាន</p>
+                        <h2 class="stat-value text-red" id="att-stat-absent">0</h2>
+                        <div class="progress-bar"><div class="progress bg-red" id="prog-absent" style="width: 0%;"></div></div>
+                        <p class="stat-percent" id="pct-absent">0% នៃសិស្ស</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-title">មានច្បាប់</p>
+                        <h2 class="stat-value text-blue" id="att-stat-leave">0</h2>
+                        <div class="progress-bar"><div class="progress bg-blue" id="prog-leave" style="width: 0%;"></div></div>
+                        <p class="stat-percent" id="pct-leave">0% នៃសិស្ស</p>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="attendance-toolbar">
+                    <div class="search-filter-group">
+                        <div class="search-wrapper">
+                            <i class='bx bx-search'></i>
+                            <input type="text" id="search-attendance" class="form-control" placeholder="ស្វែងរកសិស្ស..." onkeyup="renderAttendanceTable()">
+                        </div>
+                        <select id="filter-class-attendance" class="form-control" style="width: 150px;" onchange="renderAttendanceTable()">
                             <option value="">ថ្នាក់ទាំងអស់</option>
                         </select>
+                        <input type="date" id="attendance-date" class="form-control" onchange="renderAttendanceTable()">
                     </div>
-                    <div class="form-group" style="display: flex; gap: 10px; margin-top: 24px;">
-                        <button class="btn btn-dark" onclick="generateQR()">
-                            <i class='bx bx-qr-scan'></i> ស្កេន QR
+                    <div class="bulk-actions">
+                        <button class="btn btn-dark" onclick="generateQR()" style="margin-right: 15px;">
+                            <i class='bx bx-qr-scan'></i> QR Code
                         </button>
-                        <button class="btn btn-success" onclick="saveAttendance()">
-                            <i class='bx bx-save'></i> រក្សាទុកទាំងអស់
-                        </button>
+                        <span>គ្រប់គ្រង៖</span>
+                        <button class="badge-btn badge-green" onclick="bulkSetAttendance('present')">មានវត្តមាន</button>
+                        <button class="badge-btn badge-yellow" onclick="bulkSetAttendance('late')">យឺត</button>
+                        <button class="badge-btn badge-red" onclick="bulkSetAttendance('absent')">អវត្តមាន</button>
+                        <button class="badge-btn badge-blue" onclick="bulkSetAttendance('leave')">មានច្បាប់</button>
                     </div>
                 </div>
 
-                <div class="stats-grid">
-                    <div class="stat-box stat-present">
-                        <h3 id="att-stat-present">0</h3>
-                        <p>មានវត្តមាន</p>
-                    </div>
-                    <div class="stat-box stat-absent">
-                        <h3 id="att-stat-absent">0</h3>
-                        <p>អវត្តមាន</p>
-                    </div>
-                    <div class="stat-box stat-leave">
-                        <h3 id="att-stat-leave">0</h3>
-                        <p>ច្បាប់</p>
-                    </div>
-                </div>
-
-                <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
-                    <div id="attendance-list" class="attendance-list">
-                        <!-- Attendance rows injected via JS -->
-                    </div>
+                <!-- Table -->
+                <div class="attendance-table-container">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>សិស្ស</th>
+                                <th>ថ្នាក់</th>
+                                <th>អត្រាវត្តមាន</th>
+                                <th>ស្ថានភាពថ្ងៃនេះ</th>
+                                <th>ប្ដូរ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-list">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
             
@@ -275,6 +303,25 @@
                     <button type="submit" class="btn btn-primary">រក្សាទុក</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Change Attendance Modal -->
+    <div id="change-att-modal" class="modal">
+        <div class="modal-content" style="max-width: 350px; text-align: center;">
+            <div class="modal-header">
+                <h2>ប្ដូរវត្តមាន</h2>
+                <button class="close-btn" onclick="closeChangeAttModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <p id="change-att-student-name" style="margin-bottom: 20px; font-weight: bold;"></p>
+            <input type="hidden" id="change-att-student-id">
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #2e7d32;" onclick="saveSingleAttendance('present')">មានវត្តមាន</button>
+                <button class="btn" style="background: #fff8e1; color: #f57f17; border: 1px solid #f57f17;" onclick="saveSingleAttendance('late')">យឺត</button>
+                <button class="btn" style="background: #ffebee; color: #c62828; border: 1px solid #c62828;" onclick="saveSingleAttendance('absent')">អវត្តមាន</button>
+                <button class="btn" style="background: #e3f2fd; color: #1565c0; border: 1px solid #1565c0;" onclick="saveSingleAttendance('leave')">មានច្បាប់</button>
+            </div>
         </div>
     </div>
 
