@@ -513,20 +513,4 @@ h1, h2, h3, h4, h5, h6, .khmer-text, button, input, select, th, td, span, p, lab
 }
 .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
 
-/* Made in Bolt Badge */
-.bolt-badge {
-    position: absolute;
-    bottom: 20px;
-    right: 35px;
-    background: white;
-    border: 1px solid var(--border-color);
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.bolt-badge span { color: var(--text-primary); }
+
