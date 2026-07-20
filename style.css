@@ -605,7 +605,9 @@ h1, h2, h3, h4, h5, h6, .khmer-text, button, input, select, th, td, span, p, lab
     border-radius: 12px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--border-color);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 500px; /* added scroll height */
 }
 .attendance-table {
     width: 100%;
@@ -619,6 +621,9 @@ h1, h2, h3, h4, h5, h6, .khmer-text, button, input, select, th, td, span, p, lab
     font-weight: 600;
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 .attendance-table td {
     padding: 15px 20px;
