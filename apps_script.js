@@ -33,6 +33,21 @@ function doGet(e) {
     };
   }
 
+  // Get Subjects
+  var subjectSheet = ss.getSheetByName("Subjects");
+  if (!subjectSheet) {
+    subjectSheet = ss.insertSheet("Subjects");
+    subjectSheet.appendRow(["SubjectID", "SubjectName"]);
+  }
+  var subjectData = subjectSheet.getDataRange().getValues();
+  var subjects = {};
+  for (var i = 1; i < subjectData.length; i++) {
+    subjects[subjectData[i][0]] = {
+      id: subjectData[i][0],
+      name: subjectData[i][1]
+    };
+  }
+
   // Get Attendance
   var attSheet = ss.getSheetByName("Attendance");
   if (!attSheet) {
@@ -50,6 +65,7 @@ function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     students: students,
     classes: classes,
+    subjects: subjects,
     attendance: attendance
   })).setMimeType(ContentService.MimeType.JSON);
 }
@@ -114,6 +130,40 @@ function doPost(e) {
       var newData = [];
       for (var i = 0; i < currentData.length; i++) {
         if (i === 0 || currentData[i][0] !== classId) {
+          newData.push(currentData[i]);
+        }
+      }
+      sheet.clear();
+      if (newData.length > 0) {
+        sheet.getRange(1, 1, newData.length, newData[0].length).setValues(newData);
+      }
+      return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "updateSubjects") {
+      var sheet = ss.getSheetByName("Subjects");
+      if (!sheet) {
+        sheet = ss.insertSheet("Subjects");
+      }
+      sheet.clear();
+      sheet.appendRow(["SubjectID", "SubjectName"]);
+      var subjects = data.subjects;
+      for (var key in subjects) {
+        var sub = subjects[key];
+        sheet.appendRow([sub.id, sub.name]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "deleteSubject") {
+      var sheet = ss.getSheetByName("Subjects");
+      var subjectId = data.subjectId;
+      var currentData = sheet.getDataRange().getValues();
+      var newData = [];
+      for (var i = 0; i < currentData.length; i++) {
+        if (i === 0 || currentData[i][0] !== subjectId) {
           newData.push(currentData[i]);
         }
       }

@@ -132,10 +132,17 @@
             </section>
             
             <!-- Subjects Tab (Placeholder) -->
+            <!-- Subjects Tab -->
             <section id="subjects" class="tab-content">
-                <div class="card empty-state">
-                    <i class='bx bx-book-open'></i>
-                    <h3>សូមបន្ថែមមុខវិជ្ជាសិន</h3>
+                <div class="classes-toolbar">
+                    <span id="subject-count-text">0 មុខវិជ្ជា</span>
+                    <button class="btn btn-primary" onclick="openSubjectModal()">
+                        <i class='bx bx-plus'></i> បន្ថែមមុខវិជ្ជា
+                    </button>
+                </div>
+                
+                <div id="subject-grid" class="grid-container">
+                    <!-- Subjects injected via JS -->
                 </div>
             </section>
 
@@ -176,6 +183,9 @@
                             <i class='bx bx-search'></i>
                             <input type="text" id="search-attendance" class="form-control" placeholder="ស្វែងរកសិស្ស..." onkeyup="renderAttendanceTable()">
                         </div>
+                        <select id="filter-subject-attendance" class="form-control" style="width: 150px;" onchange="renderAttendanceTable()">
+                            <option value="">ជ្រើសរើសមុខវិជ្ជា</option>
+                        </select>
                         <select id="filter-class-attendance" class="form-control" style="width: 150px;" onchange="renderAttendanceTable()">
                             <option value="">ថ្នាក់ទាំងអស់</option>
                         </select>
@@ -322,6 +332,27 @@
                 <button class="btn" style="background: #ffebee; color: #c62828; border: 1px solid #c62828;" onclick="saveSingleAttendance('absent')">អវត្តមាន</button>
                 <button class="btn" style="background: #e3f2fd; color: #1565c0; border: 1px solid #1565c0;" onclick="saveSingleAttendance('leave')">មានច្បាប់</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Subject Modal -->
+    <div id="subject-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="subject-modal-title">បន្ថែមមុខវិជ្ជាថ្មី</h2>
+                <button class="close-btn" onclick="closeSubjectModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <form id="subject-form">
+                <input type="hidden" id="subject-id">
+                <div class="form-group">
+                    <label>ឈ្មោះមុខវិជ្ជា (ឧ. គណិតវិទ្យា)</label>
+                    <input type="text" id="subject-name" class="form-control" placeholder="បញ្ចូលឈ្មោះមុខវិជ្ជា">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSubjectModal()">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+            </form>
         </div>
     </div>
 

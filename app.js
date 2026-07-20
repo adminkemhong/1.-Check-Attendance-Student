@@ -6,6 +6,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQW0a52zFKVFPD1wM1
 // Global State
 let students = [];
 let classes = [];
+let subjects = [];
 let attendanceRecords = {};
 
 // DOM Elements
@@ -33,10 +34,14 @@ function fetchDataFromSheets() {
             students = Object.values(studs);
             const cls = data.classes || {};
             classes = Object.values(cls);
+            const subs = data.subjects || {};
+            subjects = Object.values(subs);
             attendanceRecords = data.attendance || {};
             
             populateClassDropdowns();
+            populateSubjectDropdowns();
             renderClassesTable();
+            renderSubjectsTable();
             renderStudentsTable();
             renderAttendanceTable();
             updateDashboard();
@@ -482,6 +487,7 @@ function getStatusText(status) {
 function renderAttendanceTable() {
     const list = document.getElementById('attendance-list');
     const selectedDate = attendanceDateInput.value;
+    const selectedSubject = document.getElementById('filter-subject-attendance').value;
     const selectedClass = document.getElementById('filter-class-attendance').value;
     const searchVal = document.getElementById('search-attendance') ? document.getElementById('search-attendance').value.toLowerCase() : "";
 
@@ -493,8 +499,8 @@ function renderAttendanceTable() {
     document.getElementById('att-stat-absent').textContent = 0;
     document.getElementById('att-stat-leave').textContent = 0;
 
-    if (!selectedClass) {
-        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">សូមជ្រើសរើសថ្នាក់រៀនសិន!</td></tr>';
+    if (!selectedClass || !selectedSubject) {
+        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">សូមជ្រើសរើសមុខវិជ្ជា និងថ្នាក់រៀនសិន!</td></tr>';
         return;
     }
 
@@ -509,7 +515,8 @@ function renderAttendanceTable() {
         return;
     }
 
-    const currentRecords = attendanceRecords[selectedDate] || {};
+    const recordKey = selectedDate + "_" + selectedSubject;
+    const currentRecords = attendanceRecords[recordKey] || {};
     let countPresent = 0, countLate = 0, countAbsent = 0, countLeave = 0;
 
     displayStudents.forEach((student) => {
@@ -572,23 +579,25 @@ function renderAttendanceTable() {
 
 function bulkSetAttendance(statusValue) {
     const selectedDate = attendanceDateInput.value;
+    const selectedSubject = document.getElementById('filter-subject-attendance').value;
     const selectedClass = document.getElementById('filter-class-attendance').value;
     
-    if(!selectedDate || !selectedClass) {
-        alert("សូមជ្រើសរើសកាលបរិច្ឆេទ និងថ្នាក់រៀនសិន!");
+    if(!selectedDate || !selectedSubject || !selectedClass) {
+        alert("សូមជ្រើសរើសកាលបរិច្ឆេទ មុខវិជ្ជា និងថ្នាក់រៀនសិន!");
         return;
     }
     
     if(!confirm(`តើអ្នកពិតជាចង់ដាក់សិស្សទាំងអស់ក្នុងថ្នាក់នេះឱ្យ "${statusValue}" មែនទេ?`)) return;
     
-    const currentRecords = attendanceRecords[selectedDate] || {};
+    const recordKey = selectedDate + "_" + selectedSubject;
+    const currentRecords = attendanceRecords[recordKey] || {};
     let displayStudents = students.filter(s => s.classId === selectedClass);
     
     displayStudents.forEach(student => {
         currentRecords[student.id] = statusValue;
     });
     
-    saveAttendanceDataToServer(selectedDate, currentRecords);
+    saveAttendanceDataToServer(recordKey, currentRecords);
 }
 
 const changeAttModal = document.getElementById('change-att-modal');
@@ -605,15 +614,17 @@ function closeChangeAttModal() {
 
 function saveSingleAttendance(statusValue) {
     const selectedDate = attendanceDateInput.value;
+    const selectedSubject = document.getElementById('filter-subject-attendance').value;
     const studentId = document.getElementById('change-att-student-id').value;
     
-    if(!selectedDate || !studentId) return;
+    if(!selectedDate || !selectedSubject || !studentId) return;
     
-    const currentRecords = attendanceRecords[selectedDate] || {};
+    const recordKey = selectedDate + "_" + selectedSubject;
+    const currentRecords = attendanceRecords[recordKey] || {};
     currentRecords[studentId] = statusValue;
     
     closeChangeAttModal();
-    saveAttendanceDataToServer(selectedDate, currentRecords);
+    saveAttendanceDataToServer(recordKey, currentRecords);
 }
 
 function saveAttendanceDataToServer(date, records) {
@@ -672,4 +683,142 @@ function generateQR() {
 
 function closeQRModal() {
     qrModal.classList.remove('active');
+}
+
+// --- Subjects Logic ---
+const subjectModal = document.getElementById('subject-modal');
+const subjectForm = document.getElementById('subject-form');
+
+function populateSubjectDropdowns() {
+    const filterSub = document.getElementById('filter-subject-attendance');
+    if (filterSub) {
+        filterSub.innerHTML = '<option value="">ជ្រើសរើសមុខវិជ្ជា</option>';
+        subjects.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub.id;
+            opt.textContent = sub.name;
+            filterSub.appendChild(opt);
+        });
+    }
+}
+
+function openSubjectModal(id = null) {
+    document.getElementById('subject-modal-title').textContent = id ? 'កែប្រែមុខវិជ្ជា' : 'បន្ថែមមុខវិជ្ជាថ្មី';
+    
+    if(id) {
+        const sub = subjects.find(s => s.id === id);
+        if(sub) {
+            document.getElementById('subject-id').value = sub.id;
+            document.getElementById('subject-name').value = sub.name;
+        }
+    } else {
+        subjectForm.reset();
+        document.getElementById('subject-id').value = '';
+    }
+    subjectModal.classList.add('active');
+}
+
+function closeSubjectModal() {
+    subjectModal.classList.remove('active');
+}
+
+if(subjectForm) {
+    subjectForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const idInput = document.getElementById('subject-id').value;
+        const nameInput = document.getElementById('subject-name').value;
+
+        if (!nameInput.trim()) {
+            alert("សូមបញ្ចូលឈ្មោះមុខវិជ្ជា!");
+            return;
+        }
+
+        const submitBtn = subjectForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> កំពុងរក្សាទុក...';
+        submitBtn.disabled = true;
+
+        const newId = idInput ? idInput : "SUB-" + Date.now();
+        
+        const newSubjects = [...subjects];
+        if(idInput) {
+            const idx = newSubjects.findIndex(s => s.id === idInput);
+            if(idx > -1) newSubjects[idx].name = nameInput;
+        } else {
+            newSubjects.push({ id: newId, name: nameInput });
+        }
+
+        const payload = {};
+        newSubjects.forEach(s => payload[s.id] = s);
+
+        fetch(WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "updateSubjects",
+                subjects: payload
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            
+            if(res.status === 'success') {
+                closeSubjectModal();
+                fetchDataFromSheets();
+            } else {
+                alert("មានបញ្ហាក្នុងការរក្សាទុក!");
+            }
+        }).catch(err => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Server!");
+        });
+    });
+}
+
+function deleteSubject(id) {
+    if(confirm('តើអ្នកពិតជាចង់លុបមុខវិជ្ជានេះមែនទេ? (ទិន្នន័យវត្តមានសម្រាប់មុខវិជ្ជានេះអាចនឹងបាត់បង់)')) {
+        fetch(WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "deleteSubject",
+                subjectId: id
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') fetchDataFromSheets();
+        });
+    }
+}
+
+function renderSubjectsTable() {
+    const grid = document.getElementById('subject-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    
+    document.getElementById('subject-count-text').textContent = `${subjects.length} មុខវិជ្ជា`;
+
+    if(subjects.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center;">មិនមានទិន្នន័យមុខវិជ្ជាទេ</div>';
+        return;
+    }
+
+    subjects.forEach((s) => {
+        const card = document.createElement('div');
+        card.className = 'card class-card';
+        card.innerHTML = `
+            <div class="class-icon" style="background: var(--blue);"><i class='bx bx-book' style="color: white;"></i></div>
+            <h3>${s.name}</h3>
+            <p>មុខវិជ្ជា</p>
+            <div class="class-actions">
+                <button class="btn-icon" onclick="openSubjectModal('${s.id}')"><i class='bx bx-pencil'></i></button>
+                <button class="btn-icon delete" onclick="deleteSubject('${s.id}')"><i class='bx bx-trash'></i></button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
 }
