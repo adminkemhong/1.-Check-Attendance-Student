@@ -7,6 +7,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQW0a52zFKVFPD1wM1
 const urlParams = new URLSearchParams(window.location.search);
 let targetDate = urlParams.get('date');
 let targetClassId = urlParams.get('classId');
+let targetSubjectId = urlParams.get('subjectId');
 
 if (!targetDate) {
     // Fallback to today if no date in URL
@@ -68,7 +69,7 @@ function submitAttendance() {
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
             action: "updateSingleAttendance",
-            date: targetDate,
+            date: targetSubjectId ? `${targetDate}_${targetSubjectId}` : targetDate,
             studentId: studentId,
             status: "present"
         })

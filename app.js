@@ -481,7 +481,7 @@ function getStatusText(status) {
     if(status === 'late') return '<span class="status-badge late">យឺត</span>';
     if(status === 'absent') return '<span class="status-badge absent">អវត្តមាន</span>';
     if(status === 'leave') return '<span class="status-badge leave">មានច្បាប់</span>';
-    return '<span class="status-badge present">មានវត្តមាន</span>';
+    return '<span class="status-badge absent">អវត្តមាន</span>';
 }
 
 function renderAttendanceTable() {
@@ -520,7 +520,7 @@ function renderAttendanceTable() {
     let countPresent = 0, countLate = 0, countAbsent = 0, countLeave = 0;
 
     displayStudents.forEach((student) => {
-        const status = currentRecords[student.id] || 'present';
+        const status = currentRecords[student.id] || 'absent';
         if(status === 'present') countPresent++;
         if(status === 'late') countLate++;
         if(status === 'absent') countAbsent++;
@@ -656,17 +656,18 @@ let qrcode = null;
 function generateQR() {
     const selectedDate = attendanceDateInput.value || new Date().toISOString().split('T')[0];
     const selectedClass = document.getElementById('filter-class-attendance').value;
+    const selectedSubject = document.getElementById('filter-subject-attendance').value;
     
-    if(!selectedClass) {
-        alert("សូមជ្រើសរើសថ្នាក់រៀនជាមុនសិន មុននឹងបង្កើត QR Code!");
+    if(!selectedClass || !selectedSubject) {
+        alert("សូមជ្រើសរើសថ្នាក់រៀន និងមុខវិជ្ជាជាមុនសិន មុននឹងបង្កើត QR Code!");
         return;
     }
 
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-    const scanUrl = `${baseUrl}/scan.html?date=${selectedDate}&classId=${selectedClass}`;
+    const scanUrl = `${baseUrl}/scan.html?date=${selectedDate}&classId=${selectedClass}&subjectId=${selectedSubject}`;
     
     const qrContainer = document.getElementById('qrcode');
-    qrContainer.innerHTML = ''; 
+    qrContainer.innerHTML = '';
     
     qrcode = new QRCode(qrContainer, {
         text: scanUrl,
