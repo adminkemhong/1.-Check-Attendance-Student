@@ -128,12 +128,14 @@ function populateClassDropdowns() {
     const filterAttendance = document.getElementById('filter-class-attendance');
     const studentClassSelect = document.getElementById('student-class');
     const scoreClassSelect = document.getElementById('score-class-select');
+    const reportClassSelect = document.getElementById('report-class-select');
 
     // Keep the default options
     if(filterStudents) filterStudents.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
     if(filterAttendance) filterAttendance.innerHTML = '<option value="">ជ្រើសរើសថ្នាក់រៀន...</option>';
     if(studentClassSelect) studentClassSelect.innerHTML = '<option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>';
     if(scoreClassSelect) scoreClassSelect.innerHTML = '<option value="" disabled selected>ជ្រើសរើសថ្នាក់</option>';
+    if(reportClassSelect) reportClassSelect.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
 
     classes.forEach(c => {
         const option = `<option value="${c.id}">${c.name}</option>`;
@@ -141,6 +143,7 @@ function populateClassDropdowns() {
         if(filterAttendance) filterAttendance.innerHTML += option;
         if(studentClassSelect) studentClassSelect.innerHTML += option;
         if(scoreClassSelect) scoreClassSelect.innerHTML += option;
+        if(reportClassSelect) reportClassSelect.innerHTML += option;
     });
 }
 
@@ -1066,4 +1069,234 @@ if(scoreFilterForm) {
             btn.disabled = false;
         });
     });
+}
+
+// ==========================================================
+// 📊 Reports Management
+// ==========================================================
+
+const reportFilterForm = document.getElementById('report-filter-form');
+const reportTypeSelect = document.getElementById('report-type');
+const reportDateGroup = document.getElementById('report-date-group');
+const reportMonthGroup = document.getElementById('report-month-group');
+const reportSemesterGroup = document.getElementById('report-semester-group');
+const reportContent = document.getElementById('report-content');
+const btnExportExcel = document.getElementById('btn-export-excel');
+
+if (reportTypeSelect) {
+    reportTypeSelect.addEventListener('change', (e) => {
+        const type = e.target.value;
+        reportDateGroup.style.display = type === 'daily' ? 'block' : 'none';
+        reportMonthGroup.style.display = type === 'monthly' ? 'block' : 'none';
+        reportSemesterGroup.style.display = type === 'semester' ? 'block' : 'none';
+    });
+}
+
+if (reportFilterForm) {
+    reportFilterForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        renderReportsTable();
+    });
+}
+
+if (btnExportExcel) {
+    btnExportExcel.addEventListener('click', exportToExcel);
+}
+
+function renderReportsTable() {
+    if (!reportContent) return;
+    
+    const type = document.getElementById('report-type').value;
+    const classId = document.getElementById('report-class-select').value;
+    
+    let displayStudents = students;
+    if (classId) {
+        displayStudents = students.filter(s => s.classId === classId);
+    }
+    
+    if (displayStudents.length === 0) {
+        reportContent.innerHTML = `
+            <div class="card empty-state">
+                <i class='bx bx-user-x'></i>
+                <h3>មិនមានសិស្សក្នុងថ្នាក់នេះទេ</h3>
+            </div>
+        `;
+        btnExportExcel.disabled = true;
+        return;
+    }
+
+    let html = `<div class="card" style="overflow-x: auto;">
+        <table class="attendance-table" id="report-table">`;
+    
+    if (type === 'daily') {
+        const date = document.getElementById('report-date-select').value;
+        if (!date) return alert("សូមជ្រើសរើសកាលបរិច្ឆេទ");
+        
+        const dateRecords = attendanceRecords[date] || {};
+        
+        html += `
+            <thead>
+                <tr>
+                    <th>អត្តលេខ</th>
+                    <th>ឈ្មោះសិស្ស</th>
+                    <th>ភេទ</th>
+                    <th>វត្តមាន (ថ្ងៃទី ${date})</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        displayStudents.forEach(s => {
+            const status = dateRecords[s.id] || '-';
+            let statusText = status === 'present' ? 'វត្តមាន' : 
+                             status === 'absent' ? 'អវត្តមាន' : 
+                             status === 'permission' ? 'ច្បាប់' : '-';
+            html += `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.name}</td>
+                    <td>${s.gender}</td>
+                    <td>${statusText}</td>
+                </tr>
+            `;
+        });
+        
+    } else if (type === 'monthly') {
+        const month = document.getElementById('report-month-select').value;
+        if (!month) return alert("សូមជ្រើសរើសខែ");
+        
+        html += `
+            <thead>
+                <tr>
+                    <th>អត្តលេខ</th>
+                    <th>ឈ្មោះសិស្ស</th>
+                    <th>សរុបច្បាប់</th>
+                    <th>សរុបអវត្តមាន</th>
+                    <th>ពិន្ទុសរុបប្រចាំខែ</th>
+                    <th>មធ្យមភាគប្រចាំខែ</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        displayStudents.forEach(s => {
+            let permissionCount = 0;
+            let absentCount = 0;
+            
+            // Calculate attendance for the month
+            Object.keys(attendanceRecords).forEach(dateKey => {
+                if (dateKey.startsWith(month)) {
+                    if (attendanceRecords[dateKey][s.id] === 'permission') permissionCount++;
+                    if (attendanceRecords[dateKey][s.id] === 'absent') absentCount++;
+                }
+            });
+            
+            // Get Score for the month
+            let totalScore = 0;
+            let avgScore = 0;
+            const monthClassId = `${month}_${s.classId}`;
+            const stdScores = scores[monthClassId] && scores[monthClassId][s.id] ? scores[monthClassId][s.id] : {};
+            
+            let count = 0;
+            subjects.forEach(sub => {
+                const sc = parseFloat(stdScores[sub.id]) || 0;
+                totalScore += sc;
+                if (stdScores[sub.id] !== undefined && stdScores[sub.id] !== "") count++;
+            });
+            avgScore = subjects.length > 0 ? (totalScore / subjects.length) : 0;
+            
+            html += `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.name}</td>
+                    <td>${permissionCount}</td>
+                    <td>${absentCount}</td>
+                    <td>${totalScore.toFixed(2).replace(/\.00$/, '')}</td>
+                    <td>${avgScore.toFixed(2).replace(/\.00$/, '')}</td>
+                </tr>
+            `;
+        });
+        
+    } else if (type === 'semester') {
+        const sem = document.getElementById('report-semester-select').value;
+        
+        // Define semester months (e.g., Sem 1: Nov-Apr, Sem 2: May-Oct)
+        // Simplified approach: just check the month portion (01-12)
+        // Using current year for simplicity, or we can check across all dates
+        const sem1Months = ['11', '12', '01', '02', '03', '04'];
+        const sem2Months = ['05', '06', '07', '08', '09', '10'];
+        const targetMonths = sem === '1' ? sem1Months : sem2Months;
+        
+        html += `
+            <thead>
+                <tr>
+                    <th>អត្តលេខ</th>
+                    <th>ឈ្មោះសិស្ស</th>
+                    <th>សរុបច្បាប់ (ឆមាសទី ${sem})</th>
+                    <th>សរុបអវត្តមាន (ឆមាសទី ${sem})</th>
+                    <th>មធ្យមភាគប្រចាំឆមាស</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        displayStudents.forEach(s => {
+            let permissionCount = 0;
+            let absentCount = 0;
+            let semTotalAvg = 0;
+            let monthCount = 0;
+            
+            // We need to iterate over all records and find if the month matches targetMonths
+            Object.keys(attendanceRecords).forEach(dateKey => {
+                const m = dateKey.substring(5, 7);
+                if (targetMonths.includes(m)) {
+                    if (attendanceRecords[dateKey][s.id] === 'permission') permissionCount++;
+                    if (attendanceRecords[dateKey][s.id] === 'absent') absentCount++;
+                }
+            });
+            
+            // For scores, we need to find all monthClassIds that match this semester
+            Object.keys(scores).forEach(monthClassKey => {
+                if (monthClassKey.endsWith(`_${s.classId}`)) {
+                    const monthStr = monthClassKey.substring(5, 7);
+                    if (targetMonths.includes(monthStr)) {
+                        const stdScores = scores[monthClassKey][s.id] || {};
+                        let mTotal = 0;
+                        subjects.forEach(sub => { mTotal += (parseFloat(stdScores[sub.id]) || 0); });
+                        let mAvg = subjects.length > 0 ? (mTotal / subjects.length) : 0;
+                        semTotalAvg += mAvg;
+                        monthCount++;
+                    }
+                }
+            });
+            
+            const finalAvg = monthCount > 0 ? (semTotalAvg / monthCount) : 0;
+            
+            html += `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.name}</td>
+                    <td>${permissionCount}</td>
+                    <td>${absentCount}</td>
+                    <td>${finalAvg.toFixed(2).replace(/\.00$/, '')}</td>
+                </tr>
+            `;
+        });
+    }
+    
+    html += `</tbody></table></div>`;
+    reportContent.innerHTML = html;
+    btnExportExcel.disabled = false;
+}
+
+function exportToExcel() {
+    const table = document.getElementById('report-table');
+    if (!table) return alert("មិនមានទិន្នន័យសម្រាប់ Export ទេ");
+    
+    const wb = XLSX.utils.table_to_book(table, {sheet: "Report"});
+    
+    const type = document.getElementById('report-type').value;
+    let filename = `Report_${type}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    
+    XLSX.writeFile(wb, filename);
 }

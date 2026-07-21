@@ -253,12 +253,49 @@
             </section>
 
 
-            <!-- Reports Tab (Placeholder) -->
+            <!-- Reports Tab -->
             <section id="reports" class="tab-content">
-                <div class="card empty-state">
-                    <i class='bx bx-line-chart'></i>
-                    <h3>ទំព័ររបាយការណ៍</h3>
-                    <p>ទិន្នន័យរបាយការណ៍នឹងបង្ហាញនៅទីនេះ...</p>
+                <div class="card" style="margin-bottom: 20px;">
+                    <form id="report-filter-form" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                        <div class="form-group" style="margin: 0; min-width: 150px;">
+                            <label>ប្រភេទរបាយការណ៍</label>
+                            <select id="report-type" class="form-control" required>
+                                <option value="daily">ប្រចាំថ្ងៃ</option>
+                                <option value="monthly">ប្រចាំខែ</option>
+                                <option value="semester">ប្រចាំឆមាស</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0; min-width: 150px;">
+                            <label>ថ្នាក់</label>
+                            <select id="report-class-select" class="form-control">
+                                <option value="">ថ្នាក់ទាំងអស់</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0; min-width: 150px;" id="report-date-group">
+                            <label>កាលបរិច្ឆេទ</label>
+                            <input type="date" id="report-date-select" class="form-control" required />
+                        </div>
+                        <div class="form-group" style="margin: 0; min-width: 150px; display: none;" id="report-month-group">
+                            <label>ខែ</label>
+                            <input type="month" id="report-month-select" class="form-control" />
+                        </div>
+                        <div class="form-group" style="margin: 0; min-width: 150px; display: none;" id="report-semester-group">
+                            <label>ឆមាស</label>
+                            <select id="report-semester-select" class="form-control">
+                                <option value="1">ឆមាសទី១ (វិច្ឆិកា - មេសា)</option>
+                                <option value="2">ឆមាសទី២ (ឧសភា - តុលា)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btn-generate-report"><i class='bx bx-search'></i> បង្ហាញ</button>
+                        <button type="button" class="btn btn-secondary" id="btn-export-excel" style="background: var(--green); color: white;" disabled><i class='bx bx-export'></i> ទាញយក Excel</button>
+                    </form>
+                </div>
+                
+                <div id="report-content">
+                    <div class="card empty-state">
+                        <i class='bx bx-line-chart'></i>
+                        <h3>សូមជ្រើសរើសប្រភេទរបាយការណ៍</h3>
+                    </div>
                 </div>
             </section>
 
