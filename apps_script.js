@@ -62,11 +62,26 @@ function doGet(e) {
     } catch(e) {}
   }
 
+  // Get Scores
+  var scoreSheet = ss.getSheetByName("Scores");
+  if (!scoreSheet) {
+    scoreSheet = ss.insertSheet("Scores");
+    scoreSheet.appendRow(["MonthClassID", "Data"]);
+  }
+  var scoreData = scoreSheet.getDataRange().getValues();
+  var scores = {};
+  for (var i = 1; i < scoreData.length; i++) {
+    try {
+      scores[scoreData[i][0]] = JSON.parse(scoreData[i][1]);
+    } catch(e) {}
+  }
+
   return ContentService.createTextOutput(JSON.stringify({
     students: students,
     classes: classes,
     subjects: subjects,
-    attendance: attendance
+    attendance: attendance,
+    scores: scores
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -226,6 +241,34 @@ function doPost(e) {
         sheet.getRange(rowIndex, 2).setValue(recordsStr);
       } else {
         sheet.appendRow([date, recordsStr]);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "updateScores") {
+      var sheet = ss.getSheetByName("Scores");
+      if (!sheet) {
+        sheet = ss.insertSheet("Scores");
+        sheet.appendRow(["MonthClassID", "Data"]);
+      }
+      var monthClassId = data.monthClassId;
+      var recordsStr = JSON.stringify(data.records);
+      
+      var currentData = sheet.getDataRange().getValues();
+      var updated = false;
+      
+      for (var i = 1; i < currentData.length; i++) {
+        if (currentData[i][0] === monthClassId) {
+          sheet.getRange(i + 1, 2).setValue(recordsStr);
+          updated = true;
+          break;
+        }
+      }
+      
+      if (!updated) {
+        sheet.appendRow([monthClassId, recordsStr]);
       }
       
       return ContentService.createTextOutput(JSON.stringify({status: "success"}))

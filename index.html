@@ -229,22 +229,26 @@
             <!-- Scores Tab (Placeholder) -->
             <section id="scores" class="tab-content">
                 <div class="card" style="margin-bottom: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                    <form id="score-filter-form" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: flex-end;">
                         <div class="form-group" style="margin: 0;">
                             <label>ថ្នាក់</label>
-                            <select class="form-control"><option>ថ្នាក់ទាំងអស់</option></select>
+                            <select id="score-class-select" class="form-control" required>
+                                <option value="" disabled selected>ជ្រើសរើសថ្នាក់</option>
+                            </select>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label>មេសល</label>
-                            <select class="form-control"><option>មេសលទី១</option></select>
+                            <label>ខែ</label>
+                            <input type="month" id="score-month-select" class="form-control" required />
                         </div>
-                        <button class="btn btn-primary"><i class='bx bx-save'></i> រក្សាទុក</button>
-                    </div>
+                        <button type="submit" class="btn btn-primary" id="btn-save-scores"><i class='bx bx-save'></i> រក្សាទុក</button>
+                    </form>
                 </div>
                 
-                <div class="card empty-state">
-                    <i class='bx bx-medal'></i>
-                    <h3>សូមបន្ថែមមុខវិជ្ជាសិន</h3>
+                <div id="score-content">
+                    <div class="card empty-state">
+                        <i class='bx bx-medal'></i>
+                        <h3>សូមជ្រើសរើសថ្នាក់ និងខែដើម្បីមើល ឬបញ្ចូលពិន្ទុ</h3>
+                    </div>
                 </div>
             </section>
 

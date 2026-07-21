@@ -8,6 +8,7 @@ let students = [];
 let classes = [];
 let subjects = [];
 let attendanceRecords = {};
+let scores = {};
 
 // DOM Elements
 const attendanceDateInput = document.getElementById('attendance-date');
@@ -37,6 +38,7 @@ function fetchDataFromSheets() {
             const subs = data.subjects || {};
             subjects = Object.values(subs);
             attendanceRecords = data.attendance || {};
+            scores = data.scores || {};
             
             populateClassDropdowns();
             populateSubjectDropdowns();
@@ -44,6 +46,7 @@ function fetchDataFromSheets() {
             renderSubjectsTable();
             renderStudentsTable();
             renderAttendanceTable();
+            renderScoresTable();
             updateDashboard();
         })
         .catch(err => {
@@ -124,17 +127,20 @@ function populateClassDropdowns() {
     const filterStudents = document.getElementById('filter-class-students');
     const filterAttendance = document.getElementById('filter-class-attendance');
     const studentClassSelect = document.getElementById('student-class');
+    const scoreClassSelect = document.getElementById('score-class-select');
 
     // Keep the default options
-    filterStudents.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
-    filterAttendance.innerHTML = '<option value="">ជ្រើសរើសថ្នាក់រៀន...</option>';
-    studentClassSelect.innerHTML = '<option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>';
+    if(filterStudents) filterStudents.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
+    if(filterAttendance) filterAttendance.innerHTML = '<option value="">ជ្រើសរើសថ្នាក់រៀន...</option>';
+    if(studentClassSelect) studentClassSelect.innerHTML = '<option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>';
+    if(scoreClassSelect) scoreClassSelect.innerHTML = '<option value="" disabled selected>ជ្រើសរើសថ្នាក់</option>';
 
     classes.forEach(c => {
         const option = `<option value="${c.id}">${c.name}</option>`;
-        filterStudents.innerHTML += option;
-        filterAttendance.innerHTML += option;
-        studentClassSelect.innerHTML += option;
+        if(filterStudents) filterStudents.innerHTML += option;
+        if(filterAttendance) filterAttendance.innerHTML += option;
+        if(studentClassSelect) studentClassSelect.innerHTML += option;
+        if(scoreClassSelect) scoreClassSelect.innerHTML += option;
     });
 }
 
@@ -821,5 +827,243 @@ function renderSubjectsTable() {
             </div>
         `;
         grid.appendChild(card);
+    });
+}
+
+// ==========================================================
+// 🏆 Scores Management
+// ==========================================================
+
+const scoreFilterForm = document.getElementById('score-filter-form');
+const scoreClassSelect = document.getElementById('score-class-select');
+const scoreMonthSelect = document.getElementById('score-month-select');
+const scoreContent = document.getElementById('score-content');
+
+// Set default month to current month
+const today = new Date();
+const currentMonth = today.toISOString().substring(0, 7); // YYYY-MM
+if(scoreMonthSelect) {
+    scoreMonthSelect.value = currentMonth;
+}
+
+if(scoreClassSelect && scoreMonthSelect) {
+    scoreClassSelect.addEventListener('change', renderScoresTable);
+    scoreMonthSelect.addEventListener('change', renderScoresTable);
+}
+
+function renderScoresTable() {
+    if(!scoreContent) return;
+    
+    const classId = scoreClassSelect.value;
+    const month = scoreMonthSelect.value;
+    
+    if(!classId || !month) {
+        scoreContent.innerHTML = `
+            <div class="card empty-state">
+                <i class='bx bx-medal'></i>
+                <h3>សូមជ្រើសរើសថ្នាក់ និងខែដើម្បីមើល ឬបញ្ចូលពិន្ទុ</h3>
+            </div>
+        `;
+        return;
+    }
+    
+    const classStudents = students.filter(s => s.classId === classId);
+    if(classStudents.length === 0) {
+        scoreContent.innerHTML = `
+            <div class="card empty-state">
+                <i class='bx bx-user-x'></i>
+                <h3>មិនមានសិស្សក្នុងថ្នាក់នេះទេ</h3>
+            </div>
+        `;
+        return;
+    }
+
+    if(subjects.length === 0) {
+        scoreContent.innerHTML = `
+            <div class="card empty-state">
+                <i class='bx bx-book'></i>
+                <h3>សូមបន្ថែមមុខវិជ្ជាសិន</h3>
+            </div>
+        `;
+        return;
+    }
+
+    const monthClassId = `${month}_${classId}`;
+    const currentScores = scores[monthClassId] || {};
+
+    let html = `
+    <div class="card" style="overflow-x: auto;">
+        <table class="attendance-table" id="scores-table">
+            <thead>
+                <tr>
+                    <th>ឈ្មោះសិស្ស</th>
+                    ${subjects.map(sub => `<th style="text-align:center;">${sub.name}</th>`).join('')}
+                    <th style="text-align:center;">សរុប</th>
+                    <th style="text-align:center;">មធ្យមភាគ</th>
+                    <th style="text-align:center;">ចំណាត់ថ្នាក់</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Calculate totals and averages first to determine ranking
+    const studentStats = classStudents.map(student => {
+        let total = 0;
+        let count = 0;
+        const studentScores = currentScores[student.id] || {};
+        
+        subjects.forEach(sub => {
+            const score = parseFloat(studentScores[sub.id]) || 0;
+            total += score;
+            if (studentScores[sub.id] !== undefined && studentScores[sub.id] !== "") {
+                count++;
+            }
+        });
+        
+        const average = subjects.length > 0 ? (total / subjects.length) : 0;
+        return { student, total, average, scores: studentScores };
+    });
+
+    // Sort by average descending to assign ranks
+    const sortedStats = [...studentStats].sort((a, b) => b.average - a.average);
+    
+    // Assign ranks
+    const rankMap = {};
+    let currentRank = 1;
+    let prevAverage = -1;
+    let skip = 0;
+
+    sortedStats.forEach((stat, index) => {
+        if(stat.average === 0 && stat.total === 0) {
+            rankMap[stat.student.id] = "-";
+            return;
+        }
+        
+        if (stat.average === prevAverage) {
+            skip++;
+        } else {
+            currentRank += skip;
+            skip = 1;
+            prevAverage = stat.average;
+        }
+        rankMap[stat.student.id] = currentRank;
+    });
+
+    // Render Rows
+    studentStats.forEach(stat => {
+        html += `<tr>
+            <td><strong>${stat.student.name}</strong><br><small style="color:var(--text-secondary)">${stat.student.id}</small></td>
+        `;
+        
+        subjects.forEach(sub => {
+            const val = stat.scores[sub.id] !== undefined ? stat.scores[sub.id] : '';
+            html += `<td style="text-align:center;">
+                <input type="number" class="form-control score-input" 
+                    data-student-id="${stat.student.id}" 
+                    data-subject-id="${sub.id}" 
+                    value="${val}" 
+                    style="width: 70px; text-align: center; display: inline-block; padding: 8px;" 
+                    min="0" />
+            </td>`;
+        });
+
+        html += `
+            <td style="text-align:center; font-weight: bold; color: var(--primary);">${stat.total.toFixed(2).replace(/\.00$/, '')}</td>
+            <td style="text-align:center; font-weight: bold; color: var(--green);">${stat.average.toFixed(2).replace(/\.00$/, '')}</td>
+            <td style="text-align:center;">
+                <span class="status-badge" style="background: var(--blue); color: white;">${rankMap[stat.student.id]}</span>
+            </td>
+        </tr>`;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    </div>
+    `;
+
+    scoreContent.innerHTML = html;
+
+    // Attach input listeners for live updates
+    document.querySelectorAll('.score-input').forEach(input => {
+        input.addEventListener('input', () => {
+            saveScoreLocally(classId, month);
+        });
+    });
+}
+
+function saveScoreLocally(classId, month) {
+    const monthClassId = `${month}_${classId}`;
+    if (!scores[monthClassId]) {
+        scores[monthClassId] = {};
+    }
+
+    const inputs = document.querySelectorAll('.score-input');
+    inputs.forEach(input => {
+        const studentId = input.getAttribute('data-student-id');
+        const subjectId = input.getAttribute('data-subject-id');
+        const val = input.value;
+        
+        if (!scores[monthClassId][studentId]) {
+            scores[monthClassId][studentId] = {};
+        }
+        
+        if(val !== "") {
+            scores[monthClassId][studentId][subjectId] = parseFloat(val);
+        } else {
+            delete scores[monthClassId][studentId][subjectId];
+        }
+    });
+    
+    // We update local object so when Save is clicked, it sends correct data.
+    // Real-time rank update would require DOM diffing or full re-render (which steals focus), 
+    // so we just let them click save to see updated ranks.
+}
+
+if(scoreFilterForm) {
+    scoreFilterForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const classId = scoreClassSelect.value;
+        const month = scoreMonthSelect.value;
+        if(!classId || !month) return;
+
+        const btn = document.getElementById('btn-save-scores');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> កំពុងរក្សាទុក...';
+        btn.disabled = true;
+        
+        // Force update local object from inputs before saving
+        saveScoreLocally(classId, month);
+
+        const monthClassId = `${month}_${classId}`;
+        const recordsToSave = scores[monthClassId] || {};
+
+        fetch(WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+                action: "updateScores",
+                monthClassId: monthClassId,
+                records: recordsToSave
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') {
+                renderScoresTable(); // Re-render to update ranks visually
+                alert("រក្សាទុកពិន្ទុបានជោគជ័យ!");
+            } else {
+                alert("មានបញ្ហាក្នុងការរក្សាទុក!");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("មានបញ្ហាក្នុងការភ្ជាប់ទៅ Server!");
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
     });
 }
