@@ -1585,7 +1585,7 @@ function applyUserPermissions(user) {
         general_manager: ['dashboard', 'students', 'classes', 'subjects', 'attendance', 'scores', 'reports', 'users'],
         teacher: ['dashboard', 'students', 'classes', 'subjects', 'attendance', 'scores', 'reports', 'users'],
         subject_teacher: ['attendance', 'scores', 'subjects', 'reports'],
-        class_monitor: ['attendance', 'students']
+        class_monitor: ['attendance']
     };
 
     renderUsersTable();
