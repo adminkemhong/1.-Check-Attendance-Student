@@ -731,6 +731,11 @@ h1, h2, h3, h4, h5, h6, .khmer-text, button, input, select, th, td, span, p, lab
     color: #047857;
     border: 1px solid #a7f3d0;
 }
+.role-badge.role-general-manager {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
 
 /* ==========================================
    Authentication & Login Modal System

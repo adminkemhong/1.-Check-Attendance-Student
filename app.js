@@ -1562,6 +1562,9 @@ function applyUserPermissions(user) {
         const cls = classes.find(c => c.id === user.classId);
         roleTitle = cls ? `ប្រធានថ្នាក់ (${cls.name})` : 'ប្រធានថ្នាក់';
         roleCss = 'role-class-monitor';
+    } else if (user.role === 'general_manager') {
+        roleTitle = 'អ្នកគ្រប់គ្រងទូទៅ';
+        roleCss = 'role-general-manager';
     }
 
     if (roleEl) {
@@ -1571,7 +1574,7 @@ function applyUserPermissions(user) {
 
     const headerManageBtn = document.getElementById('header-manage-users-btn');
     if (headerManageBtn) {
-        headerManageBtn.style.display = (user.role === 'teacher') ? 'flex' : 'none';
+        headerManageBtn.style.display = (user.role === 'teacher' || user.role === 'general_manager') ? 'flex' : 'none';
     }
 
     // 2. Sidebar Navigation Filtering
@@ -1579,6 +1582,7 @@ function applyUserPermissions(user) {
     const tabContents = document.querySelectorAll('.tab-content');
 
     const rolePermissions = {
+        general_manager: ['dashboard', 'students', 'classes', 'subjects', 'attendance', 'scores', 'reports', 'users'],
         teacher: ['dashboard', 'students', 'classes', 'subjects', 'attendance', 'scores', 'reports', 'users'],
         subject_teacher: ['attendance', 'scores', 'subjects', 'reports'],
         class_monitor: ['attendance', 'students']
@@ -1681,6 +1685,9 @@ function renderUsersTable() {
             const cls = classes.find(c => c.id === user.classId);
             roleBadgeHtml = '<span class="role-badge role-class-monitor">ប្រធានថ្នាក់</span>';
             assignedTarget = cls ? `ថ្នាក់៖ ${cls.name}` : '-';
+        } else if (user.role === 'general_manager') {
+            roleBadgeHtml = '<span class="role-badge role-general-manager">អ្នកគ្រប់គ្រងទូទៅ</span>';
+            assignedTarget = '-';
         }
 
         html += `
