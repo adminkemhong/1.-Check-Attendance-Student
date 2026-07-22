@@ -76,12 +76,33 @@ function doGet(e) {
     } catch(e) {}
   }
 
+  // Get Users
+  var userSheet = ss.getSheetByName("Users");
+  if (!userSheet) {
+    userSheet = ss.insertSheet("Users");
+    userSheet.appendRow(["ID", "FullName", "Username", "Password", "Role", "SubjectID", "ClassID"]);
+  }
+  var userData = userSheet.getDataRange().getValues();
+  var users = {};
+  for (var i = 1; i < userData.length; i++) {
+    users[userData[i][0]] = {
+      id: userData[i][0],
+      fullname: userData[i][1],
+      username: userData[i][2],
+      password: userData[i][3],
+      role: userData[i][4],
+      subjectId: userData[i][5] || "",
+      classId: userData[i][6] || ""
+    };
+  }
+
   return ContentService.createTextOutput(JSON.stringify({
     students: students,
     classes: classes,
     subjects: subjects,
     attendance: attendance,
-    scores: scores
+    scores: scores,
+    users: users
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -99,6 +120,19 @@ function doPost(e) {
       for (var key in students) {
         var s = students[key];
         sheet.appendRow([s.id, s.name, s.gender, s.classId || ""]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "updateUsers") {
+      var sheet = ss.getSheetByName("Users");
+      sheet.clear();
+      sheet.appendRow(["ID", "FullName", "Username", "Password", "Role", "SubjectID", "ClassID"]);
+      var users = data.users;
+      for (var key in users) {
+        var u = users[key];
+        sheet.appendRow([u.id, u.fullname, u.username, u.password, u.role, u.subjectId || "", u.classId || ""]);
       }
       return ContentService.createTextOutput(JSON.stringify({status: "success"}))
         .setMimeType(ContentService.MimeType.JSON);

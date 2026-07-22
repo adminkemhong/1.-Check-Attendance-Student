@@ -55,6 +55,10 @@
                     <i class='bx bx-line-chart'></i>
                     <span>របាយការណ៍</span>
                 </a>
+                <a href="#" class="nav-link" data-tab="users">
+                    <i class='bx bxs-user-detail'></i>
+                    <span>គ្រប់គ្រងអ្នកប្រើប្រាស់</span>
+                </a>
             </nav>
             
             <div class="sidebar-footer">
@@ -67,6 +71,18 @@
             <!-- Header -->
             <header class="top-header">
                 <h1 id="page-title">ផ្ទាំងគ្រប់គ្រង</h1>
+                <div class="user-header-info" id="user-header-info" style="display: flex; align-items: center; gap: 12px;">
+                    <button id="header-manage-users-btn" class="btn btn-primary btn-sm" onclick="openUserModal()" title="គ្រប់គ្រងអ្នកប្រើប្រាស់" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                        <i class='bx bx-user-plus'></i> គ្រប់គ្រងអ្នកប្រើប្រាស់
+                    </button>
+                    <div class="user-details" style="text-align: right;">
+                        <span id="user-display-name" style="font-weight: 600; font-size: 0.95rem; display: block;">...</span>
+                        <span id="user-display-role" class="role-badge role-teacher">...</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="logoutUser()" title="ចាកចេញពីប្រព័ន្ធ" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                        <i class='bx bx-log-out'></i> ចាកចេញ
+                    </button>
+                </div>
             </header>
 
             <!-- Dashboard Tab -->
@@ -287,7 +303,7 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary" id="btn-generate-report"><i class='bx bx-search'></i> បង្ហាញ</button>
-                        <button type="button" class="btn btn-secondary" id="btn-export-excel" style="background: var(--green); color: white;" disabled><i class='bx bx-export'></i> ទាញយក Excel</button>
+                        <button type="button" class="btn" id="btn-export-excel" style="background-color: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-family: 'Hanuman', serif; font-size: 14px; cursor: pointer;"><i class='bx bx-export' style="margin-right: 5px;"></i> នាំចេញ</button>
                     </form>
                 </div>
                 
@@ -296,6 +312,40 @@
                         <i class='bx bx-line-chart'></i>
                         <h3>សូមជ្រើសរើសប្រភេទរបាយការណ៍</h3>
                     </div>
+                </div>
+            <!-- Users / Class Monitors Management Tab -->
+            <section id="users" class="tab-content">
+                <div class="classes-toolbar" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span id="user-count-text" style="font-weight: 600;">0 អ្នកប្រើប្រាស់</span>
+                        <select id="filter-user-role" class="form-control" style="width: 220px;" onchange="renderUsersTable()">
+                            <option value="">តួនាទីទាំងអស់</option>
+                            <option value="class_monitor">ប្រធានថ្នាក់ (Class Monitor)</option>
+                            <option value="subject_teacher">គ្រូមុខវិជ្ជា (Subject Teacher)</option>
+                            <option value="teacher">គ្រូបន្ទុកថ្នាក់ (Teacher/Admin)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="openUserModal()">
+                        <i class='bx bx-user-plus'></i> បន្ថែមប្រធានថ្នាក់ / អ្នកប្រើប្រាស់
+                    </button>
+                </div>
+
+                <div class="attendance-table-container card" style="padding: 0; overflow: hidden;">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>ឈ្មោះពេញ</th>
+                                <th>ឈ្មោះគណនី (Username)</th>
+                                <th>តួនាទី</th>
+                                <th>ថ្នាក់ / មុខវិជ្ជា គ្រប់គ្រង</th>
+                                <th>លេខសម្ងាត់</th>
+                                <th>សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-list">
+                            <!-- Injected via JS -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
@@ -406,6 +456,153 @@
                     <button type="button" class="btn btn-secondary" onclick="closeSubjectModal()">បោះបង់</button>
                     <button type="submit" class="btn btn-primary">រក្សាទុក</button>
                 </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal (Admin Management) -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="user-modal-title">បន្ថែមអ្នកប្រើប្រាស់ / ប្រធានថ្នាក់</h2>
+                <button class="close-btn" onclick="closeUserModal()"><i class='bx bx-x'></i></button>
+            </div>
+            <form id="user-form" onsubmit="handleSaveUserModal(event)">
+                <input type="hidden" id="modal-user-id">
+                <div class="form-group">
+                    <label>ឈ្មោះពេញ (Full Name)</label>
+                    <input type="text" id="modal-user-fullname" class="form-control" placeholder="បញ្ចូលឈ្មោះពេញ" required>
+                </div>
+                <div class="form-group">
+                    <label>ឈ្មោះគណនី (Username)</label>
+                    <input type="text" id="modal-user-username" class="form-control" placeholder="បញ្ចូលឈ្មោះគណនី" required>
+                </div>
+                <div class="form-group">
+                    <label>លេខសម្ងាត់ (Password)</label>
+                    <input type="text" id="modal-user-password" class="form-control" placeholder="បញ្ចូលលេខសម្ងាត់" required>
+                </div>
+                <div class="form-group">
+                    <label>តួនាទី (Role)</label>
+                    <select id="modal-user-role" class="form-control" onchange="handleModalRoleChange()" required>
+                        <option value="class_monitor">ប្រធានថ្នាក់ (Class Monitor)</option>
+                        <option value="subject_teacher">គ្រូមុខវិជ្ជា (Subject Teacher)</option>
+                        <option value="teacher">គ្រូបន្ទុកថ្នាក់ (Teacher/Admin)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="modal-user-class-group">
+                    <label>ថ្នាក់ដែលគ្រប់គ្រង</label>
+                    <select id="modal-user-class" class="form-control">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+                <div class="form-group" id="modal-user-subject-group" style="display: none;">
+                    <label>មុខវិជ្ជាបង្រៀន</label>
+                    <select id="modal-user-subject" class="form-control">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">បោះបង់</button>
+                    <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Login & Register Modal Overlay -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class='bx bxs-graduation'></i>
+                    <h2>ប្រព័ន្ធគ្រប់គ្រងសិស្ស</h2>
+                </div>
+                <p class="auth-subtitle">សូមចូលប្រើប្រាស់ ឬបង្កើតគណនីថ្មីដើម្បីបន្ត</p>
+                <div class="auth-tabs">
+                    <button type="button" class="auth-tab-btn active" id="tab-login-btn" onclick="switchAuthTab('login')">
+                        <i class='bx bx-log-in-circle'></i> ចូលប្រើប្រាស់
+                    </button>
+                    <button type="button" class="auth-tab-btn" id="tab-register-btn" onclick="switchAuthTab('register')">
+                        <i class='bx bx-user-plus'></i> បង្កើតគណនីថ្មី
+                    </button>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active" onsubmit="handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label><i class='bx bx-user'></i> ឈ្មោះគណនី (Username)</label>
+                    <input type="text" id="login-username" class="form-control" placeholder="បញ្ចូលឈ្មោះគណនី..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class='bx bx-lock-alt'></i> លេខសម្ងាត់ (Password)</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="បញ្ចូលលេខសម្ងាត់..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class='bx bx-badge-check'></i> តួនាទី (Role)</label>
+                    <select id="login-role" class="form-control" required>
+                        <option value="teacher">គ្រូ (គ្រូបន្ទុកថ្នាក់ / Teacher)</option>
+                        <option value="subject_teacher">គ្រូមុខវិជ្ជា (Subject Teacher)</option>
+                        <option value="class_monitor">ប្រធានថ្នាក់ (Class Monitor)</option>
+                    </select>
+                </div>
+                <div id="login-error" class="auth-msg error-msg" style="display: none;"></div>
+                <button type="submit" class="btn btn-primary btn-auth-submit">
+                    <i class='bx bx-log-in'></i> ចូលប្រព័ន្ធ
+                </button>
+                <div class="demo-accounts-hint">
+                    <div class="hint-title">💡 គណនីសាកល្បង៖</div>
+                    <div>• គ្រូ៖ <strong>admin</strong> | <strong>123</strong></div>
+                    <div>• គ្រូមុខវិជ្ជា៖ <strong>math_teacher</strong> | <strong>123</strong></div>
+                    <div>• ប្រធានថ្នាក់៖ <strong>monitor_10a</strong> | <strong>123</strong></div>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form" onsubmit="handleRegisterSubmit(event)">
+                <div class="form-group">
+                    <label><i class='bx bx-id-card'></i> ឈ្មោះពេញ (Full Name)</label>
+                    <input type="text" id="reg-fullname" class="form-control" placeholder="បញ្ចូលឈ្មោះពេញ..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class='bx bx-user'></i> ឈ្មោះគណនី (Username)</label>
+                    <input type="text" id="reg-username" class="form-control" placeholder="បង្កើតឈ្មោះគណនី..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class='bx bx-lock-alt'></i> លេខសម្ងាត់ (Password)</label>
+                    <input type="password" id="reg-password" class="form-control" placeholder="បង្កើតលេខសម្ងាត់..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class='bx bx-badge-check'></i> ជ្រើសរើសតួនាទី (Role)</label>
+                    <select id="reg-role" class="form-control" onchange="handleRegRoleChange()" required>
+                        <option value="teacher">គ្រូ (គ្រូបន្ទុកថ្នាក់ / Teacher)</option>
+                        <option value="subject_teacher">គ្រូមុខវិជ្ជា (Subject Teacher)</option>
+                        <option value="class_monitor">ប្រធានថ្នាក់ (Class Monitor)</option>
+                    </select>
+                </div>
+                
+                <!-- Dynamic Field: Subject Selection for Subject Teacher -->
+                <div class="form-group" id="reg-subject-group" style="display: none;">
+                    <label><i class='bx bx-book-open'></i> ជ្រើសរើសមុខវិជ្ជាបង្រៀន</label>
+                    <select id="reg-subject" class="form-control">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Dynamic Field: Class Selection for Class Monitor -->
+                <div class="form-group" id="reg-class-group" style="display: none;">
+                    <label><i class='bx bx-building'></i> ជ្រើសរើសថ្នាក់ដែលគ្រប់គ្រង</label>
+                    <select id="reg-class" class="form-control">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <div id="register-error" class="auth-msg error-msg" style="display: none;"></div>
+                <div id="register-success" class="auth-msg success-msg" style="display: none;"></div>
+
+                <button type="submit" class="btn btn-success btn-auth-submit">
+                    <i class='bx bx-user-plus'></i> បង្កើតគណនី
+                </button>
             </form>
         </div>
     </div>

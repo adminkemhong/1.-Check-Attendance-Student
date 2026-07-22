@@ -9,6 +9,37 @@ let classes = [];
 let subjects = [];
 let attendanceRecords = {};
 let scores = {};
+let currentUser = null;
+
+let appUsers = [
+    {
+        id: "usr_admin",
+        fullname: "គ្រូបន្ទុកថ្នាក់ (Admin)",
+        username: "admin",
+        password: "123",
+        role: "teacher",
+        subjectId: "",
+        classId: ""
+    },
+    {
+        id: "usr_math",
+        fullname: "គ្រូមុខវិជ្ជា គណិតវិទ្យា",
+        username: "math_teacher",
+        password: "123",
+        role: "subject_teacher",
+        subjectId: "",
+        classId: ""
+    },
+    {
+        id: "usr_monitor",
+        fullname: "ប្រធានថ្នាក់ ទី១០A",
+        username: "monitor_10a",
+        password: "123",
+        role: "class_monitor",
+        subjectId: "",
+        classId: ""
+    }
+];
 
 // DOM Elements
 const attendanceDateInput = document.getElementById('attendance-date');
@@ -18,10 +49,12 @@ const pageTitle = document.getElementById('page-title');
 document.addEventListener('DOMContentLoaded', () => {
     // Set Default Date in Attendance Tab
     const today = new Date();
-    attendanceDateInput.value = today.toISOString().split('T')[0];
+    if (attendanceDateInput) attendanceDateInput.value = today.toISOString().split('T')[0];
     
     setupNavigation();
+    loadStoredUsers();
     fetchDataFromSheets(); 
+    checkAuthSession();
 });
 
 // --- Fetch Data ---
@@ -40,6 +73,15 @@ function fetchDataFromSheets() {
             attendanceRecords = data.attendance || {};
             scores = data.scores || {};
             
+            if (data.users && Object.keys(data.users).length > 0) {
+                const remoteUsers = Object.values(data.users);
+                const userMap = new Map();
+                appUsers.forEach(u => userMap.set(u.username.toLowerCase(), u));
+                remoteUsers.forEach(u => userMap.set(u.username.toLowerCase(), u));
+                appUsers = Array.from(userMap.values());
+                saveUsersLocally();
+            }
+
             populateClassDropdowns();
             populateSubjectDropdowns();
             renderClassesTable();
@@ -48,6 +90,10 @@ function fetchDataFromSheets() {
             renderAttendanceTable();
             renderScoresTable();
             updateDashboard();
+
+            if (currentUser) {
+                applyUserPermissions(currentUser);
+            }
         })
         .catch(err => {
             console.error(err);
@@ -129,6 +175,8 @@ function populateClassDropdowns() {
     const studentClassSelect = document.getElementById('student-class');
     const scoreClassSelect = document.getElementById('score-class-select');
     const reportClassSelect = document.getElementById('report-class-select');
+    const regClassSelect = document.getElementById('reg-class');
+    const modalClassSelect = document.getElementById('modal-user-class');
 
     // Keep the default options
     if(filterStudents) filterStudents.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
@@ -136,6 +184,8 @@ function populateClassDropdowns() {
     if(studentClassSelect) studentClassSelect.innerHTML = '<option value="">-- សូមជ្រើសរើសថ្នាក់រៀន --</option>';
     if(scoreClassSelect) scoreClassSelect.innerHTML = '<option value="" disabled selected>ជ្រើសរើសថ្នាក់</option>';
     if(reportClassSelect) reportClassSelect.innerHTML = '<option value="">ថ្នាក់ទាំងអស់</option>';
+    if(regClassSelect) regClassSelect.innerHTML = '<option value="">-- ជ្រើសរើសថ្នាក់ដែលគ្រប់គ្រង --</option>';
+    if(modalClassSelect) modalClassSelect.innerHTML = '<option value="">-- ជ្រើសរើសថ្នាក់ដែលគ្រប់គ្រង --</option>';
 
     classes.forEach(c => {
         const option = `<option value="${c.id}">${c.name}</option>`;
@@ -144,6 +194,8 @@ function populateClassDropdowns() {
         if(studentClassSelect) studentClassSelect.innerHTML += option;
         if(scoreClassSelect) scoreClassSelect.innerHTML += option;
         if(reportClassSelect) reportClassSelect.innerHTML += option;
+        if(regClassSelect) regClassSelect.innerHTML += option;
+        if(modalClassSelect) modalClassSelect.innerHTML += option;
     });
 }
 
@@ -701,6 +753,9 @@ const subjectForm = document.getElementById('subject-form');
 
 function populateSubjectDropdowns() {
     const filterSub = document.getElementById('filter-subject-attendance');
+    const regSubSelect = document.getElementById('reg-subject');
+    const modalSubSelect = document.getElementById('modal-user-subject');
+    
     if (filterSub) {
         filterSub.innerHTML = '<option value="">ជ្រើសរើសមុខវិជ្ជា</option>';
         subjects.forEach(sub => {
@@ -708,6 +763,26 @@ function populateSubjectDropdowns() {
             opt.value = sub.id;
             opt.textContent = sub.name;
             filterSub.appendChild(opt);
+        });
+    }
+
+    if (regSubSelect) {
+        regSubSelect.innerHTML = '<option value="">-- ជ្រើសរើសមុខវិជ្ជាបង្រៀន --</option>';
+        subjects.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub.id;
+            opt.textContent = sub.name;
+            regSubSelect.appendChild(opt);
+        });
+    }
+
+    if (modalSubSelect) {
+        modalSubSelect.innerHTML = '<option value="">-- ជ្រើសរើសមុខវិជ្ជាបង្រៀន --</option>';
+        subjects.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub.id;
+            opt.textContent = sub.name;
+            modalSubSelect.appendChild(opt);
         });
     }
 }
@@ -1299,4 +1374,443 @@ function exportToExcel() {
     let filename = `Report_${type}_${new Date().toISOString().slice(0,10)}.xlsx`;
     
     XLSX.writeFile(wb, filename);
+}
+
+// ==========================================
+// 🔐 User Authentication & Authorization Logic
+// ==========================================
+
+function loadStoredUsers() {
+    try {
+        const stored = localStorage.getItem('app_users');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                const userMap = new Map();
+                appUsers.forEach(u => userMap.set(u.username.toLowerCase(), u));
+                parsed.forEach(u => userMap.set(u.username.toLowerCase(), u));
+                appUsers = Array.from(userMap.values());
+            }
+        }
+    } catch (e) {
+        console.error("Error loading stored users:", e);
+    }
+}
+
+function saveUsersLocally() {
+    try {
+        localStorage.setItem('app_users', JSON.stringify(appUsers));
+    } catch (e) {
+        console.error("Error saving users locally:", e);
+    }
+}
+
+function saveUsersToSheets() {
+    const userObj = {};
+    appUsers.forEach(u => { userObj[u.id] = u; });
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateUsers', users: userObj })
+    }).catch(err => console.error("Error syncing users to sheets:", err));
+}
+
+function checkAuthSession() {
+    try {
+        const storedUser = localStorage.getItem('current_user') || sessionStorage.getItem('current_user');
+        if (storedUser) {
+            currentUser = JSON.parse(storedUser);
+            document.getElementById('auth-overlay').classList.add('hidden');
+            applyUserPermissions(currentUser);
+        } else {
+            document.getElementById('auth-overlay').classList.remove('hidden');
+        }
+    } catch (e) {
+        document.getElementById('auth-overlay').classList.remove('hidden');
+    }
+}
+
+function switchAuthTab(tab) {
+    const loginTabBtn = document.getElementById('tab-login-btn');
+    const registerTabBtn = document.getElementById('tab-register-btn');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('register-error').style.display = 'none';
+    document.getElementById('register-success').style.display = 'none';
+
+    if (tab === 'login') {
+        loginTabBtn.classList.add('active');
+        registerTabBtn.classList.remove('active');
+        loginForm.classList.add('active');
+        registerForm.classList.remove('active');
+    } else {
+        registerTabBtn.classList.add('active');
+        loginTabBtn.classList.remove('active');
+        registerForm.classList.add('active');
+        loginForm.classList.remove('active');
+        handleRegRoleChange();
+    }
+}
+
+function handleRegRoleChange() {
+    const role = document.getElementById('reg-role').value;
+    const subjectGroup = document.getElementById('reg-subject-group');
+    const classGroup = document.getElementById('reg-class-group');
+
+    if (subjectGroup) subjectGroup.style.display = (role === 'subject_teacher') ? 'flex' : 'none';
+    if (classGroup) classGroup.style.display = (role === 'class_monitor') ? 'flex' : 'none';
+}
+
+function handleLoginSubmit(e) {
+    e.preventDefault();
+    const username = document.getElementById('login-username').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+    const role = document.getElementById('login-role').value;
+    const errorDiv = document.getElementById('login-error');
+
+    errorDiv.style.display = 'none';
+
+    const matchedUser = appUsers.find(u => 
+        u.username.toLowerCase() === username && 
+        u.password === password && 
+        u.role === role
+    );
+
+    if (matchedUser) {
+        currentUser = matchedUser;
+        localStorage.setItem('current_user', JSON.stringify(currentUser));
+        document.getElementById('auth-overlay').classList.add('hidden');
+        applyUserPermissions(currentUser);
+    } else {
+        errorDiv.textContent = '❌ ឈ្មោះគណនី, លេខសម្ងាត់ ឬតួនាទីមិនត្រឹមត្រូវទេ!';
+        errorDiv.style.display = 'block';
+    }
+}
+
+function handleRegisterSubmit(e) {
+    e.preventDefault();
+    const fullname = document.getElementById('reg-fullname').value.trim();
+    const username = document.getElementById('reg-username').value.trim().toLowerCase();
+    const password = document.getElementById('reg-password').value;
+    const role = document.getElementById('reg-role').value;
+    const subjectId = document.getElementById('reg-subject').value;
+    const classId = document.getElementById('reg-class').value;
+
+    const errorDiv = document.getElementById('register-error');
+    const successDiv = document.getElementById('register-success');
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+
+    if (!fullname || !username || !password) {
+        errorDiv.textContent = '❌ សូមបំពេញព័ត៌មានដែលចាំបាច់ទាំងអស់!';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    const exists = appUsers.some(u => u.username.toLowerCase() === username);
+    if (exists) {
+        errorDiv.textContent = '❌ ឈ្មោះគណនីនេះមានរួចហើយ! សូមជ្រើសរើសឈ្មោះផ្សេង។';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    const newUser = {
+        id: 'usr_' + Date.now(),
+        fullname: fullname,
+        username: username,
+        password: password,
+        role: role,
+        subjectId: role === 'subject_teacher' ? subjectId : '',
+        classId: role === 'class_monitor' ? classId : ''
+    };
+
+    appUsers.push(newUser);
+    saveUsersLocally();
+    saveUsersToSheets();
+
+    successDiv.textContent = '✅ បង្កើតគណនីជោគជ័យ! អ្នកអាចចូលប្រើប្រាស់បានឥឡូវនេះ។';
+    successDiv.style.display = 'block';
+
+    setTimeout(() => {
+        document.getElementById('login-username').value = username;
+        document.getElementById('login-password').value = password;
+        document.getElementById('login-role').value = role;
+        switchAuthTab('login');
+    }, 1200);
+}
+
+function applyUserPermissions(user) {
+    if (!user) return;
+
+    // 1. Header Display Update
+    const nameEl = document.getElementById('user-display-name');
+    const roleEl = document.getElementById('user-display-role');
+
+    if (nameEl) nameEl.textContent = user.fullname;
+
+    let roleTitle = 'គ្រូបន្ទុកថ្នាក់';
+    let roleCss = 'role-teacher';
+
+    if (user.role === 'subject_teacher') {
+        const sub = subjects.find(s => s.id === user.subjectId);
+        roleTitle = sub ? `គ្រូមុខវិជ្ជា (${sub.name})` : 'គ្រូមុខវិជ្ជា';
+        roleCss = 'role-subject-teacher';
+    } else if (user.role === 'class_monitor') {
+        const cls = classes.find(c => c.id === user.classId);
+        roleTitle = cls ? `ប្រធានថ្នាក់ (${cls.name})` : 'ប្រធានថ្នាក់';
+        roleCss = 'role-class-monitor';
+    }
+
+    if (roleEl) {
+        roleEl.textContent = roleTitle;
+        roleEl.className = `role-badge ${roleCss}`;
+    }
+
+    const headerManageBtn = document.getElementById('header-manage-users-btn');
+    if (headerManageBtn) {
+        headerManageBtn.style.display = (user.role === 'teacher') ? 'flex' : 'none';
+    }
+
+    // 2. Sidebar Navigation Filtering
+    const navLinks = document.querySelectorAll('.nav-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    const rolePermissions = {
+        teacher: ['dashboard', 'students', 'classes', 'subjects', 'attendance', 'scores', 'reports', 'users'],
+        subject_teacher: ['attendance', 'scores', 'subjects', 'reports'],
+        class_monitor: ['attendance', 'students']
+    };
+
+    renderUsersTable();
+
+    const allowedTabs = rolePermissions[user.role] || rolePermissions.teacher;
+    let currentActiveAllowed = false;
+
+    navLinks.forEach(link => {
+        const tabId = link.getAttribute('data-tab');
+        if (allowedTabs.includes(tabId)) {
+            link.style.display = 'flex';
+            if (link.classList.contains('active')) {
+                currentActiveAllowed = true;
+            }
+        } else {
+            link.style.display = 'none';
+            link.classList.remove('active');
+        }
+    });
+
+    if (!currentActiveAllowed) {
+        const defaultTabId = allowedTabs[0];
+        navLinks.forEach(link => {
+            if (link.getAttribute('data-tab') === defaultTabId) {
+                link.classList.add('active');
+                document.getElementById('page-title').textContent = link.querySelector('span').textContent;
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        tabContents.forEach(tab => {
+            if (tab.id === defaultTabId) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+    }
+
+    // 3. Pre-select filters based on role assignments
+    if (user.role === 'class_monitor' && user.classId) {
+        const attClassSel = document.getElementById('filter-class-attendance');
+        const studClassSel = document.getElementById('filter-class-students');
+        if (attClassSel) attClassSel.value = user.classId;
+        if (studClassSel) studClassSel.value = user.classId;
+    }
+
+    if (user.role === 'subject_teacher' && user.subjectId) {
+        const attSubSel = document.getElementById('filter-subject-attendance');
+        if (attSubSel) attSubSel.value = user.subjectId;
+    }
+}
+
+function logoutUser() {
+    if (confirm('តើអ្នកពិតជាចង់ចាកចេញពីប្រព័ន្ធមែនទេ?')) {
+        currentUser = null;
+        localStorage.removeItem('current_user');
+        sessionStorage.removeItem('current_user');
+        document.getElementById('auth-overlay').classList.remove('hidden');
+        switchAuthTab('login');
+    }
+}
+
+// ==========================================
+// 👥 Admin User / Class Monitor Management
+// ==========================================
+
+function renderUsersTable() {
+    const listEl = document.getElementById('users-list');
+    const countEl = document.getElementById('user-count-text');
+    const roleFilter = document.getElementById('filter-user-role') ? document.getElementById('filter-user-role').value : '';
+
+    if (!listEl) return;
+
+    let filtered = appUsers;
+    if (roleFilter) {
+        filtered = appUsers.filter(u => u.role === roleFilter);
+    }
+
+    if (countEl) countEl.textContent = `${filtered.length} អ្នកប្រើប្រាស់`;
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">មិនទាន់មានទិន្នន័យអ្នកប្រើប្រាស់ទេ</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(user => {
+        let roleBadgeHtml = '<span class="role-badge role-teacher">គ្រូបន្ទុកថ្នាក់</span>';
+        let assignedTarget = '-';
+
+        if (user.role === 'subject_teacher') {
+            const sub = subjects.find(s => s.id === user.subjectId);
+            roleBadgeHtml = '<span class="role-badge role-subject-teacher">គ្រូមុខវិជ្ជា</span>';
+            assignedTarget = sub ? `មុខវិជ្ជា៖ ${sub.name}` : '-';
+        } else if (user.role === 'class_monitor') {
+            const cls = classes.find(c => c.id === user.classId);
+            roleBadgeHtml = '<span class="role-badge role-class-monitor">ប្រធានថ្នាក់</span>';
+            assignedTarget = cls ? `ថ្នាក់៖ ${cls.name}` : '-';
+        }
+
+        html += `
+            <tr>
+                <td style="font-weight: 600;">${user.fullname}</td>
+                <td><code style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #0f172a;">${user.username}</code></td>
+                <td>${roleBadgeHtml}</td>
+                <td>${assignedTarget}</td>
+                <td><span style="font-family: monospace; letter-spacing: 2px;">••••••</span></td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="openUserModal('${user.id}')" title="កែប្រែ" style="margin-right: 6px; padding: 4px 8px;">
+                        <i class='bx bx-edit-alt'></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteUser('${user.id}')" title="លុប" style="padding: 4px 8px;">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    listEl.innerHTML = html;
+}
+
+function openUserModal(id = null) {
+    const modal = document.getElementById('user-modal');
+    const titleEl = document.getElementById('user-modal-title');
+    const form = document.getElementById('user-form');
+
+    populateClassDropdowns();
+    populateSubjectDropdowns();
+
+    if (id) {
+        const u = appUsers.find(user => user.id === id);
+        if (u) {
+            titleEl.textContent = 'កែប្រែអ្នកប្រើប្រាស់ / ប្រធានថ្នាក់';
+            document.getElementById('modal-user-id').value = u.id;
+            document.getElementById('modal-user-fullname').value = u.fullname;
+            document.getElementById('modal-user-username').value = u.username;
+            document.getElementById('modal-user-password').value = u.password;
+            document.getElementById('modal-user-role').value = u.role;
+            document.getElementById('modal-user-class').value = u.classId || '';
+            document.getElementById('modal-user-subject').value = u.subjectId || '';
+        }
+    } else {
+        titleEl.textContent = 'បន្ថែមអ្នកប្រើប្រាស់ / ប្រធានថ្នាក់';
+        form.reset();
+        document.getElementById('modal-user-id').value = '';
+        document.getElementById('modal-user-role').value = 'class_monitor';
+    }
+
+    handleModalRoleChange();
+    modal.classList.add('active');
+}
+
+function closeUserModal() {
+    document.getElementById('user-modal').classList.remove('active');
+}
+
+function handleModalRoleChange() {
+    const role = document.getElementById('modal-user-role').value;
+    const classGroup = document.getElementById('modal-user-class-group');
+    const subjectGroup = document.getElementById('modal-user-subject-group');
+
+    if (classGroup) classGroup.style.display = (role === 'class_monitor') ? 'block' : 'none';
+    if (subjectGroup) subjectGroup.style.display = (role === 'subject_teacher') ? 'block' : 'none';
+}
+
+function handleSaveUserModal(e) {
+    e.preventDefault();
+    const id = document.getElementById('modal-user-id').value;
+    const fullname = document.getElementById('modal-user-fullname').value.trim();
+    const username = document.getElementById('modal-user-username').value.trim().toLowerCase();
+    const password = document.getElementById('modal-user-password').value;
+    const role = document.getElementById('modal-user-role').value;
+    const classId = document.getElementById('modal-user-class').value;
+    const subjectId = document.getElementById('modal-user-subject').value;
+
+    if (!fullname || !username || !password) {
+        alert('សូមបំពេញព័ត៌មានដែលចាំបាច់ទាំងអស់!');
+        return;
+    }
+
+    if (id) {
+        const u = appUsers.find(user => user.id === id);
+        if (u) {
+            u.fullname = fullname;
+            u.username = username;
+            u.password = password;
+            u.role = role;
+            u.classId = (role === 'class_monitor') ? classId : '';
+            u.subjectId = (role === 'subject_teacher') ? subjectId : '';
+        }
+    } else {
+        const exists = appUsers.some(u => u.username.toLowerCase() === username);
+        if (exists) {
+            alert('ឈ្មោះគណនីនេះមានរួចហើយ! សូមប្រើប្រាស់ឈ្មោះផ្សេង។');
+            return;
+        }
+        const newUser = {
+            id: 'usr_' + Date.now(),
+            fullname,
+            username,
+            password,
+            role,
+            classId: (role === 'class_monitor') ? classId : '',
+            subjectId: (role === 'subject_teacher') ? subjectId : ''
+        };
+        appUsers.push(newUser);
+    }
+
+    saveUsersLocally();
+    saveUsersToSheets();
+    renderUsersTable();
+    closeUserModal();
+}
+
+function deleteUser(id) {
+    const u = appUsers.find(user => user.id === id);
+    if (!u) return;
+
+    if (u.username === 'admin') {
+        alert('មិនអាចលុបគណនី Admin ដើមបានទេ!');
+        return;
+    }
+
+    if (confirm(`តើអ្នកពិតជាចង់លុបគណនី "${u.fullname}" មែនទេ?`)) {
+        appUsers = appUsers.filter(user => user.id !== id);
+        saveUsersLocally();
+        saveUsersToSheets();
+        renderUsersTable();
+    }
 }
