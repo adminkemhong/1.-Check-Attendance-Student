@@ -1545,6 +1545,10 @@ function handleRegisterSubmit(e) {
 function applyUserPermissions(user) {
     if (!user) return;
 
+    // Reset dropdowns to ensure all options are available before filtering
+    if (typeof populateClassDropdowns === 'function') populateClassDropdowns();
+    if (typeof populateSubjectDropdowns === 'function') populateSubjectDropdowns();
+
     // 1. Header Display Update
     const nameEl = document.getElementById('user-display-name');
     const roleEl = document.getElementById('user-display-role');
@@ -1560,7 +1564,7 @@ function applyUserPermissions(user) {
         roleCss = 'role-subject-teacher';
     } else if (user.role === 'class_monitor') {
         const cls = classes.find(c => c.id === user.classId);
-        roleTitle = cls ? `ប្រធានថ្នាក់ (${cls.name})` : 'ប្រធានថ្នាក់';
+        roleTitle = cls ? `ប្រធានថ្នាក់: ${cls.name} (Updated)` : 'ប្រធានថ្នាក់';
         roleCss = 'role-class-monitor';
     } else if (user.role === 'general_manager') {
         roleTitle = 'អ្នកគ្រប់គ្រងទូទៅ';
@@ -1626,16 +1630,51 @@ function applyUserPermissions(user) {
     }
 
     // 3. Pre-select filters based on role assignments
+    const attClassSel = document.getElementById('filter-class-attendance');
+    const studClassSel = document.getElementById('filter-class-students');
+    const attSubSel = document.getElementById('filter-subject-attendance');
+    
+    // Reset disabled state first
+    if (attClassSel) attClassSel.disabled = false;
+    if (studClassSel) studClassSel.disabled = false;
+    if (attSubSel) attSubSel.disabled = false;
+
+    let filtersChanged = false;
+
     if (user.role === 'class_monitor' && user.classId) {
-        const attClassSel = document.getElementById('filter-class-attendance');
-        const studClassSel = document.getElementById('filter-class-students');
-        if (attClassSel) attClassSel.value = user.classId;
-        if (studClassSel) studClassSel.value = user.classId;
+        const cls = classes.find(c => c.id === user.classId);
+        const className = cls ? cls.name : user.classId;
+        
+        if (attClassSel) {
+            attClassSel.innerHTML = `<option value="${user.classId}">${className}</option>`;
+            attClassSel.value = user.classId;
+            attClassSel.disabled = true;
+        }
+        if (studClassSel) {
+            studClassSel.innerHTML = `<option value="${user.classId}">${className}</option>`;
+            studClassSel.value = user.classId;
+            studClassSel.disabled = true;
+        }
+        filtersChanged = true;
     }
 
     if (user.role === 'subject_teacher' && user.subjectId) {
-        const attSubSel = document.getElementById('filter-subject-attendance');
-        if (attSubSel) attSubSel.value = user.subjectId;
+        const sub = subjects.find(s => s.id === user.subjectId);
+        const subName = sub ? sub.name : user.subjectId;
+
+        if (attSubSel) {
+            attSubSel.innerHTML = `<option value="${user.subjectId}">${subName}</option>`;
+            attSubSel.value = user.subjectId;
+            attSubSel.disabled = true;
+        }
+        filtersChanged = true;
+    }
+    
+    if (filtersChanged) {
+        setTimeout(() => {
+            if (typeof renderAttendanceTable === 'function') renderAttendanceTable();
+            if (typeof filterStudents === 'function') filterStudents();
+        }, 50);
     }
 }
 
@@ -1821,3 +1860,18 @@ function deleteUser(id) {
         renderUsersTable();
     }
 }
+
+// --- Password Visibility Toggle ---
+function togglePasswordVisibility(inputId, iconElement) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElement.classList.remove('bx-show');
+        iconElement.classList.add('bx-hide');
+    } else {
+        input.type = 'password';
+        iconElement.classList.remove('bx-hide');
+        iconElement.classList.add('bx-show');
+    }
+}
+

@@ -481,7 +481,10 @@
                 </div>
                 <div class="form-group">
                     <label>លេខសម្ងាត់ (Password)</label>
-                    <input type="text" id="modal-user-password" class="form-control" placeholder="បញ្ចូលលេខសម្ងាត់" required>
+                    <div style="position: relative;">
+                        <input type="password" id="modal-user-password" class="form-control" placeholder="បញ្ចូលលេខសម្ងាត់" required style="padding-right: 40px;">
+                        <i class='bx bx-show' onclick="togglePasswordVisibility('modal-user-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280; font-size: 20px;"></i>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>តួនាទី (Role)</label>
@@ -539,7 +542,10 @@
                 </div>
                 <div class="form-group">
                     <label><i class='bx bx-lock-alt'></i> លេខសម្ងាត់ (Password)</label>
-                    <input type="password" id="login-password" class="form-control" placeholder="បញ្ចូលលេខសម្ងាត់..." required>
+                    <div style="position: relative;">
+                        <input type="password" id="login-password" class="form-control" placeholder="បញ្ចូលលេខសម្ងាត់..." required style="padding-right: 40px;">
+                        <i class='bx bx-show' onclick="togglePasswordVisibility('login-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280; font-size: 20px;"></i>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label><i class='bx bx-badge-check'></i> តួនាទី (Role)</label>
@@ -574,7 +580,10 @@
                 </div>
                 <div class="form-group">
                     <label><i class='bx bx-lock-alt'></i> លេខសម្ងាត់ (Password)</label>
-                    <input type="password" id="reg-password" class="form-control" placeholder="បង្កើតលេខសម្ងាត់..." required>
+                    <div style="position: relative;">
+                        <input type="password" id="reg-password" class="form-control" placeholder="បង្កើតលេខសម្ងាត់..." required style="padding-right: 40px;">
+                        <i class='bx bx-show' onclick="togglePasswordVisibility('reg-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280; font-size: 20px;"></i>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label><i class='bx bx-badge-check'></i> ជ្រើសរើសតួនាទី (Role)</label>
@@ -612,6 +621,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=2.0"></script>
 </body>
 </html>
